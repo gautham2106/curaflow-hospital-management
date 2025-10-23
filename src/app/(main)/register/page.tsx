@@ -137,7 +137,12 @@ export default function VisitRegisterPage() {
           date: new Date(r.date), 
           checkInTime: new Date(r.check_in_time), 
           calledTime: r.called_time ? new Date(r.called_time) : undefined, 
-          completedTime: r.completed_time ? new Date(r.completed_time) : undefined 
+          completedTime: r.completed_time ? new Date(r.completed_time) : undefined,
+          // Flatten nested objects
+          patientName: r.patients?.name || 'Unknown',
+          phone: r.patients?.phone || '',
+          doctorName: r.doctors?.name || 'Unknown',
+          tokenNumber: r.token_number
         })));
       } catch (e) {
         toast({ title: "Error", description: "Could not fetch visit records." });
