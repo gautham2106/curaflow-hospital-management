@@ -165,6 +165,48 @@ export default function VisitRegisterPage() {
     fetchVisits();
   }, [selectedDate, toast, get, clinicId]);
 
+  // Auto-refresh visits data every 30 seconds
+  useEffect(() => {
+    if (!selectedDate || !clinicId) return;
+
+    const refreshVisits = async () => {
+      try {
+        const dateString = format(selectedDate, 'yyyy-MM-dd');
+        const response = await get('/api/visits', { date: dateString });
+        if (!response) return;
+
+        const data = await response.json();
+        setDailyRecords(data.map((r: any) => ({ 
+          ...r, 
+          date: new Date(r.date), 
+          checkInTime: new Date(r.check_in_time), 
+          calledTime: r.called_time ? new Date(r.called_time) : undefined, 
+          completedTime: r.completed_time ? new Date(r.completed_time) : undefined,
+          // Flatten nested objects
+          patientName: r.patients?.name || 'Unknown',
+          phone: r.patients?.phone || '',
+          doctorName: r.doctors?.name || 'Unknown',
+          tokenNumber: r.token_number,
+          // Enhanced tracking fields
+          waitingTimeMinutes: r.waiting_time_minutes || 0,
+          consultationTimeMinutes: r.consultation_time_minutes || 0,
+          totalTimeMinutes: r.total_time_minutes || 0,
+          wasSkipped: r.was_skipped || false,
+          skipReason: r.skip_reason || '',
+          wasOutOfTurn: r.was_out_of_turn || false,
+          outOfTurnReason: r.out_of_turn_reason || '',
+          sessionEndTime: r.session_end_time ? new Date(r.session_end_time) : undefined,
+          visitNotes: r.visit_notes || '',
+          patientSatisfactionRating: r.patient_satisfaction_rating || null
+        })));
+      } catch (e) {
+        console.error('Failed to refresh visit records:', e);
+      }
+    };
+
+    const interval = setInterval(refreshVisits, 30000); // Refresh every 30 seconds
+    return () => clearInterval(interval);
+  }, [selectedDate, get, clinicId]);
 
   const filteredAndSortedRecords = useMemo(() => {
     let records = [...dailyRecords];
@@ -375,6 +417,7 @@ export default function VisitRegisterPage() {
                     <div className="flex items-center gap-2">
                         <Button className="w-full" variant="outline" onClick={handleExportPdf}><Download className="mr-2"/>PDF</Button>
                         <Button className="w-full" variant="outline" onClick={handlePrint}><Printer className="mr-2"/>Print</Button>
+                        <Button className="w-full" variant="outline" onClick={() => window.location.reload()}><Clock className="mr-2"/>Refresh</Button>
                     </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
