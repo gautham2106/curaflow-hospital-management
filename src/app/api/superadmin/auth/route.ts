@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { supabaseService } from '@/lib/supabase/service';
 
-// Simple superadmin authentication without database dependency
+// Superadmin login with proper database integration
 export async function POST(request: NextRequest) {
   try {
     const { username, password } = await request.json();
@@ -13,30 +14,62 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Simple hardcoded authentication
-    if (username === 'superadmin' && password === 'superadmin123') {
-      // Generate session token
-      const sessionToken = `superadmin-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      
-      return NextResponse.json({
-        success: true,
-        superadmin: { 
-          id: 'superadmin-demo-id',
-          name: 'Super Administrator', 
-          username: 'superadmin',
-          email: 'admin@curaflow.com',
-          role: 'superadmin' 
-        },
-        token: sessionToken,
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    // Authenticate superadmin using database function
+    const { data: authResult, error: authError } = await supabaseService.supabase
+      .rpc('authenticate_superadmin', { 
+        p_username: username, 
+        p_password: password 
       });
+
+    if (authError) {
+      console.error('Superadmin authentication error:', authError);
+      return NextResponse.json(
+        { error: 'Authentication service error' },
+        { status: 500 }
+      );
     }
 
-    // Invalid credentials
-    return NextResponse.json(
-      { error: 'Invalid username or password' },
-      { status: 401 }
-    );
+    // Check authentication result
+    if (!authResult || authResult.length === 0 || !authResult[0].is_authenticated) {
+      return NextResponse.json(
+        { error: 'Invalid username or password' },
+        { status: 401 }
+      );
+    }
+
+    const superadmin = authResult[0];
+
+    // Generate session token
+    const sessionToken = `superadmin-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Store session in database
+    const { error: sessionError } = await supabaseService.supabase
+      .from('superadmin_sessions')
+      .insert({
+        superadmin_id: superadmin.superadmin_id,
+        token: sessionToken,
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        ip_address: request.headers.get('x-forwarded-for') || 'unknown',
+        user_agent: request.headers.get('user-agent') || 'unknown'
+      });
+
+    if (sessionError) {
+      console.error('Session storage error:', sessionError);
+      // Continue anyway with token
+    }
+
+    return NextResponse.json({
+      success: true,
+      superadmin: { 
+        id: superadmin.superadmin_id,
+        name: superadmin.full_name, 
+        username: superadmin.username,
+        email: superadmin.email,
+        role: 'superadmin' 
+      },
+      token: sessionToken,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    });
 
   } catch (error) {
     console.error('Superadmin login error:', error);
@@ -47,7 +80,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Simple session validation
+// Validate superadmin session
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -60,24 +93,38 @@ export async function GET(request: NextRequest) {
 
     const token = authHeader.substring(7);
 
-    // Simple token validation
-    if (token.startsWith('superadmin-')) {
-      return NextResponse.json({
-        success: true,
-        superadmin: { 
-          id: 'superadmin-demo-id',
-          name: 'Super Administrator', 
-          username: 'superadmin',
-          email: 'admin@curaflow.com',
-          role: 'superadmin' 
-        }
-      });
+    // Validate session using database function
+    const { data: validationResult, error: validationError } = await supabaseService.supabase
+      .rpc('validate_superadmin_session', { p_token: token });
+
+    if (validationError) {
+      console.error('Session validation error:', validationError);
+      return NextResponse.json(
+        { error: 'Session validation error' },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json(
-      { error: 'Invalid or expired session' },
-      { status: 401 }
-    );
+    // Check validation result
+    if (!validationResult || validationResult.length === 0 || !validationResult[0].is_valid) {
+      return NextResponse.json(
+        { error: 'Invalid or expired session' },
+        { status: 401 }
+      );
+    }
+
+    const superadmin = validationResult[0];
+
+    return NextResponse.json({
+      success: true,
+      superadmin: { 
+        id: superadmin.superadmin_id,
+        name: superadmin.full_name, 
+        username: superadmin.username,
+        email: superadmin.email,
+        role: 'superadmin' 
+      }
+    });
 
   } catch (error) {
     console.error('Session validation error:', error);

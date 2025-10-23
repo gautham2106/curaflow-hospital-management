@@ -1,25 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { supabaseService } from '@/lib/supabase/service';
+import { validateSuperadminAccess, createErrorResponse } from '@/lib/superadmin-auth';
 
-// Simple superadmin clinics API without database dependency
+// Create new clinic
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'Authorization token required' },
-        { status: 401 }
-      );
+    // Validate superadmin access
+    const accessValidation = await validateSuperadminAccess(request);
+    if (!accessValidation.isValid) {
+      return createErrorResponse(accessValidation.error!, accessValidation.status!);
     }
 
-    const token = authHeader.substring(7);
-
-    // Simple token validation
-    if (!token.startsWith('superadmin-')) {
-      return NextResponse.json(
-        { error: 'Invalid or expired session' },
-        { status: 401 }
-      );
-    }
+    const superadminId = accessValidation.superadmin!.id;
 
     const {
       name,
@@ -50,17 +42,48 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Return success response (mock creation)
-    const newClinic = {
-      id: `clinic-${Date.now()}`,
-      name: name,
-      admin_username: admin_username
-    };
+    // Create clinic using superadmin function
+    const { data: result, error } = await supabaseService.supabase
+      .rpc('create_clinic_as_superadmin', {
+        p_superadmin_id: superadminId,
+        p_name: name,
+        p_address: address || null,
+        p_phone: phone || null,
+        p_email: email || null,
+        p_admin_username: admin_username,
+        p_admin_pin: admin_pin,
+        p_admin_name: admin_name,
+        p_subscription_plan: 'premium', // All clinics get premium by default
+        p_max_doctors: max_doctors,
+        p_max_patients_per_day: max_patients_per_day,
+        p_notes: notes || null
+      });
+
+    if (error) {
+      console.error('Error creating clinic:', error);
+      return NextResponse.json(
+        { error: 'Failed to create clinic' },
+        { status: 500 }
+      );
+    }
+
+    if (!result || result.length === 0 || !result[0].success) {
+      return NextResponse.json(
+        { error: result?.[0]?.message || 'Failed to create clinic' },
+        { status: 500 }
+      );
+    }
+
+    const newClinic = result[0];
 
     return NextResponse.json({
       success: true,
-      clinic: newClinic,
-      message: 'Clinic created successfully (demo mode)'
+      clinic: {
+        id: newClinic.clinic_id,
+        name: newClinic.clinic_name,
+        admin_username: newClinic.admin_username
+      },
+      message: newClinic.message
     }, { status: 201 });
 
   } catch (error) {
@@ -72,68 +95,30 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Get all clinics (mock data)
+// Get all clinics
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // Validate superadmin access
+    const accessValidation = await validateSuperadminAccess(request);
+    if (!accessValidation.isValid) {
+      return createErrorResponse(accessValidation.error!, accessValidation.status!);
+    }
+
+    const superadminId = accessValidation.superadmin!.id;
+
+    // Get all clinics using superadmin function
+    const { data: clinics, error } = await supabaseService.supabase
+      .rpc('get_all_clinics_for_superadmin', { p_superadmin_id: superadminId });
+
+    if (error) {
+      console.error('Error fetching clinics:', error);
       return NextResponse.json(
-        { error: 'Authorization token required' },
-        { status: 401 }
+        { error: 'Failed to fetch clinics' },
+        { status: 500 }
       );
     }
 
-    const token = authHeader.substring(7);
-
-    // Simple token validation
-    if (!token.startsWith('superadmin-')) {
-      return NextResponse.json(
-        { error: 'Invalid or expired session' },
-        { status: 401 }
-      );
-    }
-
-    // Return mock clinic data
-    const mockClinics = [
-      {
-        id: 'clinic-1',
-        name: 'CuraFlow Central Hospital',
-        address: '123 Medical Center Drive',
-        phone: '555-0100',
-        email: 'info@curaflow.com',
-        admin_username: 'admin',
-        admin_name: 'Admin User',
-        max_doctors: 20,
-        max_patients_per_day: 200,
-        is_active: true,
-        created_at: new Date().toISOString(),
-        last_modified: new Date().toISOString(),
-        modification_notes: 'Demo clinic',
-        total_doctors: 5,
-        total_patients: 25,
-        total_visits_today: 8
-      },
-      {
-        id: 'clinic-2',
-        name: 'Sunrise Medical Clinic',
-        address: '456 Health Avenue',
-        phone: '555-0200',
-        email: 'contact@sunrise.com',
-        admin_username: 'sunrise-admin',
-        admin_name: 'Sunrise Admin',
-        max_doctors: 10,
-        max_patients_per_day: 100,
-        is_active: true,
-        created_at: new Date().toISOString(),
-        last_modified: new Date().toISOString(),
-        modification_notes: 'Demo clinic',
-        total_doctors: 3,
-        total_patients: 20,
-        total_visits_today: 4
-      }
-    ];
-
-    return NextResponse.json(mockClinics);
+    return NextResponse.json(clinics || []);
 
   } catch (error) {
     console.error('Error fetching clinics:', error);
