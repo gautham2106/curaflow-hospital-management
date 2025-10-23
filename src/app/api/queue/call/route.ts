@@ -39,8 +39,8 @@ export async function POST(request: NextRequest) {
         }
 
         // Get updated queue
-        const queue = await supabaseService.getQueue(clinicId);
-        return NextResponse.json(queue);
+        const updatedQueue = await supabaseService.getQueue(clinicId);
+        return NextResponse.json(updatedQueue);
     } catch (error) {
         console.error('Error calling patient:', error);
         return NextResponse.json(
