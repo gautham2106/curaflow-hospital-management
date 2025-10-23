@@ -33,7 +33,7 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data || [];
+    return data;
   }
 
   async createClinic(clinic: TablesInsert<'clinics'>) {
@@ -44,7 +44,7 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data || [];
+    return data;
   }
 
   async updateClinic(id: string, updates: TablesUpdate<'clinics'>) {
@@ -56,7 +56,7 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data || [];
+    return data;
   }
 
   // ===== DOCTORS =====
@@ -175,7 +175,7 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data || [];
+    return data;
   }
 
   async updatePatient(id: string, updates: TablesUpdate<'patients'>) {
@@ -325,7 +325,7 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data || [];
+    return data;
   }
 
   async updateVisit(id: string, updates: TablesUpdate<'visits'>) {
