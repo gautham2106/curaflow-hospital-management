@@ -85,7 +85,7 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data || [];
+    return data;
   }
 
   async createDoctor(doctor: TablesInsert<'doctors'>) {
@@ -96,7 +96,7 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data || [];
+    return data;
   }
 
   async updateDoctor(id: string, updates: TablesUpdate<'doctors'>) {
@@ -108,7 +108,7 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data || [];
+    return data;
   }
 
   async updateDoctorStatus(id: string, status: string) {
@@ -120,7 +120,7 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data || [];
+    return data;
   }
 
   async deleteDoctor(id: string) {
@@ -164,7 +164,7 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data || [];
+    return data;
   }
 
   async createPatient(patient: TablesInsert<'patients'>) {
@@ -187,7 +187,7 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data || [];
+    return data;
   }
 
   async deletePatient(id: string) {
@@ -341,7 +341,7 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data || [];
+    return data;
   }
 
   async getNextTokenNumber(clinicId: string, doctorId: string, date: string, session: string) {
@@ -383,7 +383,7 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data || [];
+    return data;
   }
 
   async updateQueueStatus(id: string, status: string) {
@@ -402,7 +402,7 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data || [];
+    return data;
   }
 
   async callPatient(queueId: string) {
@@ -424,7 +424,7 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data || [];
+    return data;
   }
 
   async skipPatient(queueId: string) {
@@ -443,7 +443,7 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data || [];
+    return data;
   }
 
   async completePatient(queueId: string) {
@@ -462,7 +462,7 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data || [];
+    return data;
   }
 
   // ===== AD RESOURCES =====
@@ -485,7 +485,7 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data || [];
+    return data;
   }
 
   async updateAdResource(id: string, updates: TablesUpdate<'ad_resources'>) {
@@ -497,7 +497,7 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data || [];
+    return data;
   }
 
   async deleteAdResource(id: string) {
