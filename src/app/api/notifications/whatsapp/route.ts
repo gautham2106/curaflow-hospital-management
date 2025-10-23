@@ -2,6 +2,45 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 
+// URL shortening service with multiple fallbacks
+async function shortenUrl(longUrl: string): Promise<string> {
+    const shorteningServices = [
+        // TinyURL
+        async () => {
+            const response = await axios.get(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`);
+            return response.data;
+        },
+        // Is.gd
+        async () => {
+            const response = await axios.get(`https://is.gd/create.php?format=simple&url=${encodeURIComponent(longUrl)}`);
+            return response.data;
+        },
+        // 0x0.st
+        async () => {
+            const response = await axios.post('https://0x0.st', `url=${encodeURIComponent(longUrl)}`, {
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+            });
+            return response.data.trim();
+        }
+    ];
+
+    for (const service of shorteningServices) {
+        try {
+            const shortUrl = await service();
+            if (shortUrl && shortUrl.startsWith('http')) {
+                console.log('URL shortened successfully:', shortUrl);
+                return shortUrl;
+            }
+        } catch (error) {
+            console.log('URL shortening service failed:', error);
+            continue;
+        }
+    }
+    
+    console.log('All URL shortening services failed, using original URL');
+    return longUrl;
+}
+
 export async function POST(request: NextRequest) {
     const { tokenData, sessionTimeRange, clinicName } = await request.json();
 
@@ -9,10 +48,15 @@ export async function POST(request: NextRequest) {
     const phoneId = '591459790706231';
     const endpointUrl = `https://graph.facebook.com/v22.0/${phoneId}/messages`;
 
-    // Construct the tracking URL
-    const trackingUrl = (typeof window !== 'undefined' && tokenData.clinicId)
-      ? `${window.location.origin}/display?clinicId=${tokenData.clinicId}&doctorId=${tokenData.doctor.id}&date=${new Date(tokenData.date).toISOString().split('T')[0]}&session=${tokenData.session}&tokenId=${tokenData.id}`
-      : `http://localhost:3000/display?clinicId=curaflow-central&doctorId=${tokenData.doctor.id}&date=${new Date(tokenData.date).toISOString().split('T')[0]}&session=${tokenData.session}&tokenId=${tokenData.id}`; // Fallback for server-side
+    // Construct the tracking URL using the correct Vercel URL
+    const baseUrl = 'https://curaflow-hospital-management123.vercel.app';
+    const trackingUrl = `${baseUrl}/display?clinicId=${tokenData.clinicId}&doctorId=${tokenData.doctor.id}&date=${new Date(tokenData.date).toISOString().split('T')[0]}&session=${tokenData.session}&tokenId=${tokenData.id}`;
+    
+    console.log('Original tracking URL:', trackingUrl);
+    
+    // Shorten the URL
+    const shortUrl = await shortenUrl(trackingUrl);
+    console.log('Shortened URL:', shortUrl);
 
 
     const parameters = [
@@ -24,7 +68,7 @@ export async function POST(request: NextRequest) {
         { type: 'text', text: new Date(tokenData.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }) },
         { type: 'text', text: tokenData.session },
         { type: 'text', text: sessionTimeRange },
-        { type: 'text', text: trackingUrl },
+        { type: 'text', text: shortUrl },
     ];
 
     const messagePayload = {
