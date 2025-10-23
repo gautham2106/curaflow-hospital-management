@@ -132,7 +132,13 @@ export default function VisitRegisterPage() {
         if (!response) return;
 
         const data = await response.json();
-        setDailyRecords(data.map((r: any) => ({ ...r, date: new Date(r.date), checkInTime: new Date(r.checkInTime), calledTime: r.calledTime ? new Date(r.calledTime) : undefined, completedTime: r.completedTime ? new Date(r.completedTime) : undefined })));
+        setDailyRecords(data.map((r: any) => ({ 
+          ...r, 
+          date: new Date(r.date), 
+          checkInTime: new Date(r.check_in_time), 
+          calledTime: r.called_time ? new Date(r.called_time) : undefined, 
+          completedTime: r.completed_time ? new Date(r.completed_time) : undefined 
+        })));
       } catch (e) {
         toast({ title: "Error", description: "Could not fetch visit records." });
         setDailyRecords([]);
