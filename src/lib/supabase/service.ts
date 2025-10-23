@@ -124,7 +124,7 @@ export class SupabaseService {
   }
 
   async deleteDoctor(id: string) {
-    const { error } = await this.supabase
+    const { error } = await this.serviceSupabase
       .from('doctors')
       .delete()
       .eq('id', id);
@@ -191,7 +191,7 @@ export class SupabaseService {
   }
 
   async deletePatient(id: string) {
-    const { error } = await this.supabase
+    const { error } = await this.serviceSupabase
       .from('patients')
       .delete()
       .eq('id', id);
@@ -251,7 +251,7 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data || [];
+    return data;
   }
 
   async updateSession(id: string, updates: TablesUpdate<'sessions'>) {
@@ -263,11 +263,11 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data || [];
+    return data;
   }
 
   async deleteSession(id: string) {
-    const { error } = await this.supabase
+    const { error } = await this.serviceSupabase
       .from('sessions')
       .delete()
       .eq('id', id);
@@ -501,7 +501,7 @@ export class SupabaseService {
   }
 
   async deleteAdResource(id: string) {
-    const { error } = await this.supabase
+    const { error } = await this.serviceSupabase
       .from('ad_resources')
       .delete()
       .eq('id', id);
@@ -511,7 +511,7 @@ export class SupabaseService {
 
   async reorderAdResources(clinicId: string, reorderedResources: { id: string; display_order: number }[]) {
     const updates = reorderedResources.map(resource => 
-      this.supabase
+      this.serviceSupabase
         .from('ad_resources')
         .update({ display_order: resource.display_order })
         .eq('id', resource.id)
