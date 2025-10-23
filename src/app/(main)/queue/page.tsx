@@ -151,7 +151,13 @@ export default function LiveQueuePage() {
                     sessionsRes.json()
                 ]);
                 
-                setQueue(queueData.map((q: any) => ({...q, checkInTime: new Date(q.checkInTime)})));
+                setQueue(queueData.map((q: any) => ({
+                    ...q, 
+                    checkInTime: new Date(q.check_in_time),
+                    patientName: q.patient_name,
+                    doctorName: q.doctor_name,
+                    tokenNumber: q.token_number
+                })));
                 setDoctors(doctorsData);
                 setSessionConfigs(sessionsData);
                 setCurrentSession(getCurrentSession(sessionsData));
@@ -206,7 +212,13 @@ export default function LiveQueuePage() {
             if (!response) return;
             const updatedQueue = await response.json();
 
-            setQueue(updatedQueue.map((q: any) => ({...q, checkInTime: new Date(q.checkInTime)})));
+            setQueue(updatedQueue.map((q: any) => ({
+                ...q, 
+                checkInTime: new Date(q.check_in_time),
+                patientName: q.patient_name,
+                doctorName: q.doctor_name,
+                tokenNumber: q.token_number
+            })));
             toast({
                 title: "Patient Called",
                 description: `${patientToCall.patientName} (Token: ${patientToCall.tokenNumber}) is now being served.`,
@@ -247,7 +259,13 @@ export default function LiveQueuePage() {
             const response = await post('/api/queue/skip', { patientId });
             if (!response) return;
             const updatedQueue = await response.json();
-            setQueue(updatedQueue.map((q: any) => ({...q, checkInTime: new Date(q.checkInTime)})));
+            setQueue(updatedQueue.map((q: any) => ({
+                ...q, 
+                checkInTime: new Date(q.check_in_time),
+                patientName: q.patient_name,
+                doctorName: q.doctor_name,
+                tokenNumber: q.token_number
+            })));
             toast({
                 title: 'Patient Skipped',
                 description: `${patientToSkip.patientName} has been moved to the skipped list.`,
@@ -267,7 +285,13 @@ export default function LiveQueuePage() {
             const response = await post('/api/queue/rejoin', { patientId });
             if (!response) return;
             const updatedQueue = await response.json();
-            setQueue(updatedQueue.map((q: any) => ({...q, checkInTime: new Date(q.checkInTime)})));
+            setQueue(updatedQueue.map((q: any) => ({
+                ...q, 
+                checkInTime: new Date(q.check_in_time),
+                patientName: q.patient_name,
+                doctorName: q.doctor_name,
+                tokenNumber: q.token_number
+            })));
             toast({
                 title: 'Patient Rejoined',
                 description: `${patientToRejoin.patientName} has been added to the end of the waiting list.`,
@@ -284,7 +308,13 @@ export default function LiveQueuePage() {
             const response = await post('/api/sessions/end', { doctorId: selectedDoctorId, sessionName: currentSession.name });
             if (!response) return;
             const updatedQueue = await response.json();
-            setQueue(updatedQueue.map((q: any) => ({...q, checkInTime: new Date(q.checkInTime)})));
+            setQueue(updatedQueue.map((q: any) => ({
+                ...q, 
+                checkInTime: new Date(q.check_in_time),
+                patientName: q.patient_name,
+                doctorName: q.doctor_name,
+                tokenNumber: q.token_number
+            })));
 
             toast({
                 title: "Session Ended",
