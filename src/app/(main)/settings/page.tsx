@@ -56,7 +56,9 @@ export default function SettingsPage() {
           sessionsRes.json()
         ]);
         setHospitalInfo(infoData);
-        setDepartments(deptsData);
+        // Extract department names from objects
+        const departmentNames = deptsData.map((dept: any) => dept.name);
+        setDepartments(departmentNames);
         setSessions(sessionsData);
       } catch (error) {
         toast({ title: 'Error', description: 'Failed to load settings.', variant: 'destructive' });
@@ -82,8 +84,9 @@ export default function SettingsPage() {
     try {
         const response = await post('/api/departments', { name });
         if (!response) return;
-        const newDepartments = await response.json();
-        setDepartments(newDepartments);
+        const newDepartment = await response.json();
+        // Add the new department name to the list
+        setDepartments(current => [...current, newDepartment.name]);
         setAddDeptOpen(false);
         toast({ title: 'Department Added', description: `"${name}" has been added.` });
     } catch(error) {
