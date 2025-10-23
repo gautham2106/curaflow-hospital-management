@@ -157,7 +157,8 @@ export default function LiveQueuePage() {
                     patientName: q.patient_name,
                     doctorName: q.doctor_name,
                     tokenNumber: q.token_number,
-                    session: q.session
+                    session: q.session,
+                    appointmentId: q.appointment_id
                 })));
                 setDoctors(doctorsData);
                 setSessionConfigs(sessionsData);
@@ -206,13 +207,17 @@ export default function LiveQueuePage() {
     }, [doctorQueue]);
 
 
-    const performCallPatient = async (patientId: string, reason?: string) => {
+    const performCallPatient = async (queueItemId: string, reason?: string) => {
         if (!clinicId) return;
-        const patientToCall = queue.find(p => p.id === patientId);
-        if (!patientToCall) return;
+        const queueItem = queue.find(p => p.id === queueItemId);
+        if (!queueItem) return;
 
         try {
-            const response = await post('/api/queue/call', { patientId, doctorId: selectedDoctorId, reason });
+            const response = await post('/api/queue/call', { 
+                patientId: queueItem.appointmentId, // Use appointment_id (visit ID) for the API
+                doctorId: selectedDoctorId, 
+                reason 
+            });
             if (!response) return;
             const updatedQueue = await response.json();
 
@@ -222,11 +227,12 @@ export default function LiveQueuePage() {
                 patientName: q.patient_name,
                 doctorName: q.doctor_name,
                 tokenNumber: q.token_number,
-                session: q.session
+                session: q.session,
+                appointmentId: q.appointment_id
             })));
             toast({
                 title: "Patient Called",
-                description: `${patientToCall.patientName} (Token: ${patientToCall.tokenNumber}) is now being served.`,
+                description: `${queueItem.patientName} (Token: ${queueItem.tokenNumber}) is now being served.`,
             });
         } catch (error) {
             toast({ title: 'Error', description: 'Failed to call patient.', variant: 'destructive' });
@@ -255,13 +261,13 @@ export default function LiveQueuePage() {
     };
 
     
-    const handleSkipPatient = async (patientId: string) => {
+    const handleSkipPatient = async (queueItemId: string) => {
         if (!clinicId) return;
-        const patientToSkip = queue.find(p => p.id === patientId);
-        if(!patientToSkip) return;
+        const queueItem = queue.find(p => p.id === queueItemId);
+        if(!queueItem) return;
 
         try {
-            const response = await post('/api/queue/skip', { patientId });
+            const response = await post('/api/queue/skip', { patientId: queueItem.appointmentId });
             if (!response) return;
             const updatedQueue = await response.json();
             setQueue(updatedQueue.map((q: any) => ({
@@ -270,11 +276,12 @@ export default function LiveQueuePage() {
                 patientName: q.patient_name,
                 doctorName: q.doctor_name,
                 tokenNumber: q.token_number,
-                session: q.session
+                session: q.session,
+                appointmentId: q.appointment_id
             })));
             toast({
                 title: 'Patient Skipped',
-                description: `${patientToSkip.patientName} has been moved to the skipped list.`,
+                description: `${queueItem.patientName} has been moved to the skipped list.`,
                 variant: 'destructive'
             });
         } catch (error) {
@@ -282,13 +289,13 @@ export default function LiveQueuePage() {
         }
     }
     
-    const handleRejoinQueue = async (patientId: string) => {
+    const handleRejoinQueue = async (queueItemId: string) => {
         if (!clinicId) return;
-        const patientToRejoin = queue.find(p => p.id === patientId);
-        if(!patientToRejoin) return;
+        const queueItem = queue.find(p => p.id === queueItemId);
+        if(!queueItem) return;
         
         try {
-            const response = await post('/api/queue/rejoin', { patientId });
+            const response = await post('/api/queue/rejoin', { patientId: queueItem.appointmentId });
             if (!response) return;
             const updatedQueue = await response.json();
             setQueue(updatedQueue.map((q: any) => ({
@@ -297,11 +304,12 @@ export default function LiveQueuePage() {
                 patientName: q.patient_name,
                 doctorName: q.doctor_name,
                 tokenNumber: q.token_number,
-                session: q.session
+                session: q.session,
+                appointmentId: q.appointment_id
             })));
             toast({
                 title: 'Patient Rejoined',
-                description: `${patientToRejoin.patientName} has been added to the end of the waiting list.`,
+                description: `${queueItem.patientName} has been added to the end of the waiting list.`,
             });
         } catch (error) {
             toast({ title: 'Error', description: 'Failed to rejoin patient.', variant: 'destructive' });
@@ -321,7 +329,8 @@ export default function LiveQueuePage() {
                 patientName: q.patient_name,
                 doctorName: q.doctor_name,
                 tokenNumber: q.token_number,
-                session: q.session
+                session: q.session,
+                appointmentId: q.appointment_id
             })));
 
             toast({
