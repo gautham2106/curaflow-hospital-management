@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
                 phone: patient.phone,
                 age: patient.age,
                 gender: patient.gender,
-                family_id: patient.phone, // Use phone as family ID for now
+                family_id: uuidv4(), // Generate proper UUID for family_id
                 last_visit: new Date().toISOString(),
                 total_visits: 1,
             });
