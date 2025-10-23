@@ -1,0 +1,70 @@
+{
+  "placeholderImages": [
+    {
+      "id": "doctor-1",
+      "description": "Portrait of Dr. Emily Carter",
+      "imageUrl": "https://picsum.photos/seed/doc1/100/100",
+      "imageHint": "doctor portrait"
+    },
+    {
+      "id": "doctor-2",
+      "description": "Portrait of Dr. Ben Adams",
+      "imageUrl": "https://picsum.photos/seed/doc2/100/100",
+      "imageHint": "doctor portrait"
+    },
+    {
+      "id": "doctor-3",
+      "description": "Portrait of Dr. Olivia Chen",
+      "imageUrl": "https://picsum.photos/seed/doc3/100/100",
+      "imageHint": "doctor portrait"
+    },
+    {
+      "id": "doctor-4",
+      "description": "Portrait of Dr. Marcus Wright",
+      "imageUrl": "https://picsum.photos/seed/doc4/100/100",
+      "imageHint": "doctor portrait"
+    },
+    {
+      "id": "patient-1",
+      "description": "Portrait of John Smith",
+      "imageUrl": "https://picsum.photos/seed/pat1/100/100",
+      "imageHint": "person portrait"
+    },
+    {
+      "id": "patient-2",
+      "description": "Portrait of Maria Garcia",
+      "imageUrl": "https://picsum.photos/seed/pat2/100/100",
+      "imageHint": "person portrait"
+    },
+    {
+      "id": "patient-3",
+      "description": "Portrait of David Johnson",
+      "imageUrl": "https://picsum.photos/seed/pat3/100/100",
+      "imageHint": "person portrait"
+    },
+    {
+      "id": "patient-4",
+      "description": "Portrait of Sarah Lee",
+      "imageUrl": "https://picsum.photos/seed/pat4/100/100",
+      "imageHint": "person portrait"
+    },
+    {
+      "id": "patient-5",
+      "description": "Portrait of Michael Brown",
+      "imageUrl": "https://picsum.photos/seed/pat5/100/100",
+      "imageHint": "person portrait"
+    },
+    {
+      "id": "patient-6",
+      "description": "Portrait of Jessica Williams",
+      "imageUrl": "https://picsum.photos/seed/pat6/100/100",
+      "imageHint": "person portrait"
+    },
+    {
+      "id": "hero-background",
+      "description": "A calm and modern hospital reception area",
+      "imageUrl": "https://picsum.photos/seed/hero-bg/1200/800",
+      "imageHint": "hospital reception"
+    }
+  ]
+}
