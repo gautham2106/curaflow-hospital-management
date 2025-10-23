@@ -4,6 +4,28 @@
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- ========================================
+-- CLEANUP: Drop all existing functions to avoid conflicts
+-- ========================================
+
+-- Drop all existing superadmin functions
+DROP FUNCTION IF EXISTS authenticate_superadmin(TEXT, TEXT);
+DROP FUNCTION IF EXISTS validate_superadmin_session(TEXT);
+DROP FUNCTION IF EXISTS create_clinic_as_superadmin(UUID, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, INTEGER, INTEGER, TEXT);
+DROP FUNCTION IF EXISTS get_all_clinics_for_superadmin(UUID);
+DROP FUNCTION IF EXISTS get_superadmin_stats(UUID);
+
+-- Drop any other existing functions that might conflict
+DROP FUNCTION IF EXISTS authenticate_clinic(TEXT, TEXT);
+DROP FUNCTION IF EXISTS create_clinic_with_admin(TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, INTEGER, INTEGER);
+DROP FUNCTION IF EXISTS update_clinic_admin(UUID, TEXT, TEXT, TEXT);
+DROP FUNCTION IF EXISTS deactivate_clinic(UUID);
+DROP FUNCTION IF EXISTS get_clinic_stats(UUID);
+DROP FUNCTION IF EXISTS get_full_queue(UUID);
+DROP FUNCTION IF EXISTS complete_previous_consultation(UUID, UUID);
+DROP FUNCTION IF EXISTS end_session_for_doctor(UUID, TEXT, TEXT);
+DROP FUNCTION IF EXISTS end_session_with_tracking(UUID, UUID, TEXT, TIMESTAMP WITH TIME ZONE);
+
 -- Create superadmin table
 CREATE TABLE IF NOT EXISTS superadmins (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
