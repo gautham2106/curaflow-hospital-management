@@ -9,7 +9,15 @@ export async function GET(request: NextRequest) {
         if (!clinicId) return clinicIdNotFoundResponse();
         
         const sessions = await supabaseService.getSessions(clinicId);
-        return NextResponse.json(sessions);
+        
+        // Transform database format to frontend format
+        const transformedSessions = sessions.map(session => ({
+            name: session.name,
+            start: session.start_time,
+            end: session.end_time
+        }));
+        
+        return NextResponse.json(transformedSessions);
     } catch (error) {
         console.error('Error fetching sessions:', error);
         return NextResponse.json(
@@ -44,7 +52,14 @@ export async function PUT(request: NextRequest) {
             createdSessions.push(created);
         }
 
-        return NextResponse.json(createdSessions);
+        // Transform response to match frontend format
+        const transformedSessions = createdSessions.map(session => ({
+            name: session.name,
+            start: session.start_time,
+            end: session.end_time
+        }));
+
+        return NextResponse.json(transformedSessions);
     } catch (error) {
         console.error('Error updating sessions:', error);
         return NextResponse.json(
