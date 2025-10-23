@@ -176,9 +176,12 @@ function PreSessionScreen({ sessionStartTime, tokenNumber }: { sessionStartTime:
 
 // --- Main Display Components ---
 
-const getStatusForDoctor = (doctorName: string, queue: QueueItem[]) => {
+const getStatusForDoctor = (doctorName: string, queue: QueueItem[], currentSession?: string) => {
   const doctorQueue = queue
-    .filter(item => item.doctorName === doctorName)
+    .filter(item => 
+      item.doctorName === doctorName && 
+      (!currentSession || item.session === currentSession)
+    )
     .sort((a, b) => {
         if (a.status === 'In-consultation') return -1;
         if (b.status === 'In-consultation') return 1;
@@ -196,8 +199,8 @@ const getStatusForDoctor = (doctorName: string, queue: QueueItem[]) => {
 };
 
 
-function DoctorDisplayCard({ doctor, highlightToken, queue }: { doctor: Doctor, highlightToken?: number, queue: QueueItem[] }) {
-    const { nowServing, next, waitingList } = getStatusForDoctor(doctor.name, queue);
+function DoctorDisplayCard({ doctor, highlightToken, queue, currentSession }: { doctor: Doctor, highlightToken?: number, queue: QueueItem[], currentSession?: string | null }) {
+    const { nowServing, next, waitingList } = getStatusForDoctor(doctor.name, queue, currentSession);
 
     const isHighlighted = (token: number) => highlightToken === token;
 
@@ -286,6 +289,7 @@ function DisplayView() {
   const [currentDoctorIndex, setCurrentDoctorIndex] = useState(0);
   const [hospitalName, setHospitalName] = useState('YOUR HOSPITAL NAME');
   const [isLoading, setIsLoading] = useState(true);
+  const [currentSession, setCurrentSession] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -317,6 +321,24 @@ function DisplayView() {
             setQueue(queueData);
             setSessionConfigs(sessionsData);
             setAdResources(adsData);
+            
+            // Determine current session
+            const now = new Date();
+            const currentTime = now.getHours() * 100 + now.getMinutes();
+            
+            let activeSession = null;
+            for (const session of sessionsData) {
+                const [startHour, startMinute] = session.start.split(':').map(Number);
+                const [endHour, endMinute] = session.end.split(':').map(Number);
+                const startTime = startHour * 100 + startMinute;
+                const endTime = endHour * 100 + endMinute;
+                
+                if (currentTime >= startTime && currentTime < endTime) {
+                    activeSession = session.name;
+                    break;
+                }
+            }
+            setCurrentSession(activeSession);
 
         } catch (error) {
             toast({
@@ -358,6 +380,29 @@ function DisplayView() {
     return () => clearInterval(timer);
   }, []);
 
+  // Refresh queue data every 30 seconds
+  useEffect(() => {
+    if (!clinicId) return;
+    
+    const refreshQueue = async () => {
+      try {
+        const queueRes = isQrMode ? 
+          await fetch('/api/queue', { headers: { 'x-clinic-id': clinicId } }) : 
+          await get('/api/queue');
+        
+        if (queueRes && queueRes.ok) {
+          const queueData = await queueRes.json();
+          setQueue(queueData);
+        }
+      } catch (error) {
+        console.error('Failed to refresh queue data:', error);
+      }
+    };
+
+    const interval = setInterval(refreshQueue, 30000); // Refresh every 30 seconds
+    return () => clearInterval(interval);
+  }, [clinicId, isQrMode, get]);
+
   useEffect(() => {
     if (doctorsForTv.length > 1) {
       const cycleTimer = setInterval(() => {
@@ -388,7 +433,7 @@ function DisplayView() {
       if (doctor) {
           return (
             <div className="w-full max-w-2xl mx-auto p-4 flex items-center justify-center min-h-screen">
-                <DoctorDisplayCard doctor={doctor} highlightToken={tokenToHighlight} queue={queue} />
+                <DoctorDisplayCard doctor={doctor} highlightToken={tokenToHighlight} queue={queue} currentSession={currentSession} />
             </div>
           );
       }
@@ -400,7 +445,7 @@ function DisplayView() {
       <main className="flex-1 flex flex-col p-4 md:p-6 lg:p-8">
         {doctorsForTv.length > 0 ? (
           <div className="grid gap-8 w-full h-full grid-cols-1">
-            <DoctorDisplayCard doctor={doctorsForTv[currentDoctorIndex]} queue={queue} />
+            <DoctorDisplayCard doctor={doctorsForTv[currentDoctorIndex]} queue={queue} currentSession={currentSession} />
           </div>
         ) : (
           <div className="flex flex-1 items-center justify-center h-full">
