@@ -26,6 +26,10 @@ DROP FUNCTION IF EXISTS complete_previous_consultation(UUID, UUID);
 DROP FUNCTION IF EXISTS end_session_for_doctor(UUID, TEXT, TEXT);
 DROP FUNCTION IF EXISTS end_session_with_tracking(UUID, UUID, TEXT, TIMESTAMP WITH TIME ZONE);
 
+-- Drop superadmin management functions
+DROP FUNCTION IF EXISTS update_clinic_as_superadmin(UUID, UUID, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, INTEGER, INTEGER, BOOLEAN, TEXT);
+DROP FUNCTION IF EXISTS deactivate_clinic_as_superadmin(UUID, UUID, TEXT);
+
 -- Create superadmin table
 CREATE TABLE IF NOT EXISTS superadmins (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -433,6 +437,102 @@ CREATE POLICY "Allow all operations on superadmins for authenticated users" ON s
 DROP POLICY IF EXISTS "Allow all operations on superadmin_sessions for authenticated users" ON superadmin_sessions;
 CREATE POLICY "Allow all operations on superadmin_sessions for authenticated users" ON superadmin_sessions
     FOR ALL USING (auth.role() = 'authenticated');
+
+-- ========================================
+-- ADDITIONAL SUPERADMIN FUNCTIONS
+-- ========================================
+
+-- Function to update clinic details as a superadmin
+CREATE OR REPLACE FUNCTION update_clinic_as_superadmin(
+    p_superadmin_id UUID,
+    p_clinic_id UUID,
+    p_name TEXT DEFAULT NULL,
+    p_address TEXT DEFAULT NULL,
+    p_phone TEXT DEFAULT NULL,
+    p_email TEXT DEFAULT NULL,
+    p_admin_username TEXT DEFAULT NULL,
+    p_admin_pin TEXT DEFAULT NULL,
+    p_admin_name TEXT DEFAULT NULL,
+    p_max_doctors INTEGER DEFAULT NULL,
+    p_max_patients_per_day INTEGER DEFAULT NULL,
+    p_is_active BOOLEAN DEFAULT NULL,
+    p_notes TEXT DEFAULT NULL
+)
+RETURNS BOOLEAN AS $$
+DECLARE
+    v_superadmin_exists BOOLEAN;
+    v_clinic_exists BOOLEAN;
+BEGIN
+    -- Verify superadmin exists and is active
+    SELECT EXISTS(SELECT 1 FROM superadmins WHERE id = p_superadmin_id AND is_active = TRUE) INTO v_superadmin_exists;
+    IF NOT v_superadmin_exists THEN
+        RAISE EXCEPTION 'Superadmin with ID % not found or is inactive.', p_superadmin_id;
+    END IF;
+
+    -- Verify clinic exists and is managed by this superadmin (or allow master superadmin to update all)
+    SELECT EXISTS(SELECT 1 FROM clinics WHERE id = p_clinic_id AND (created_by_superadmin = p_superadmin_id OR p_superadmin_id IS NULL)) INTO v_clinic_exists;
+    IF NOT v_clinic_exists THEN
+        RAISE EXCEPTION 'Clinic with ID % not found or not managed by superadmin %.', p_clinic_id, p_superadmin_id;
+    END IF;
+
+    -- Check if new admin_username already exists for another clinic
+    IF p_admin_username IS NOT NULL AND EXISTS (SELECT 1 FROM clinics WHERE admin_username = p_admin_username AND id != p_clinic_id) THEN
+        RAISE EXCEPTION 'Admin username % already exists for another clinic.', p_admin_username;
+    END IF;
+
+    UPDATE clinics
+    SET
+        name = COALESCE(p_name, name),
+        address = COALESCE(p_address, address),
+        phone = COALESCE(p_phone, phone),
+        email = COALESCE(p_email, email),
+        admin_username = COALESCE(p_admin_username, admin_username),
+        admin_pin = COALESCE(p_admin_pin, admin_pin),
+        admin_name = COALESCE(p_admin_name, admin_name),
+        max_doctors = COALESCE(p_max_doctors, max_doctors),
+        max_patients_per_day = COALESCE(p_max_patients_per_day, max_patients_per_day),
+        is_active = COALESCE(p_is_active, is_active),
+        last_modified = NOW(),
+        modification_notes = COALESCE(p_notes, modification_notes)
+    WHERE id = p_clinic_id;
+
+    RETURN TRUE;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to deactivate a clinic as a superadmin
+CREATE OR REPLACE FUNCTION deactivate_clinic_as_superadmin(
+    p_superadmin_id UUID,
+    p_clinic_id UUID,
+    p_reason TEXT DEFAULT 'Deactivated by superadmin'
+)
+RETURNS BOOLEAN AS $$
+DECLARE
+    v_superadmin_exists BOOLEAN;
+    v_clinic_exists BOOLEAN;
+BEGIN
+    -- Verify superadmin exists and is active
+    SELECT EXISTS(SELECT 1 FROM superadmins WHERE id = p_superadmin_id AND is_active = TRUE) INTO v_superadmin_exists;
+    IF NOT v_superadmin_exists THEN
+        RAISE EXCEPTION 'Superadmin with ID % not found or is inactive.', p_superadmin_id;
+    END IF;
+
+    -- Verify clinic exists and is managed by this superadmin (or allow master superadmin to deactivate all)
+    SELECT EXISTS(SELECT 1 FROM clinics WHERE id = p_clinic_id AND (created_by_superadmin = p_superadmin_id OR p_superadmin_id IS NULL)) INTO v_clinic_exists;
+    IF NOT v_clinic_exists THEN
+        RAISE EXCEPTION 'Clinic with ID % not found or not managed by superadmin %.', p_clinic_id, p_superadmin_id;
+    END IF;
+
+    UPDATE clinics
+    SET
+        is_active = FALSE,
+        last_modified = NOW(),
+        modification_notes = COALESCE(modification_notes || E'\n' || p_reason, p_reason)
+    WHERE id = p_clinic_id;
+
+    RETURN TRUE;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Test the superadmin system
 SELECT 'Superadmin system created successfully!' as status;

@@ -1,5 +1,6 @@
-// Simplified superadmin authentication middleware
+// Superadmin authentication middleware with database integration
 import { NextRequest, NextResponse } from 'next/server';
+import { supabaseService } from '@/lib/supabase/service';
 
 export async function validateSuperadminAccess(request: NextRequest) {
   try {
@@ -14,23 +15,38 @@ export async function validateSuperadminAccess(request: NextRequest) {
 
     const token = authHeader.substring(7);
 
-    // Simple token validation
-    if (token.startsWith('superadmin-')) {
+    // Validate session using database function
+    const { data: validationResult, error: validationError } = await supabaseService.supabase
+      .rpc('validate_superadmin_session', { p_token: token });
+
+    if (validationError) {
+      console.error('Session validation error:', validationError);
       return {
-        isValid: true,
-        superadmin: {
-          id: 'superadmin-demo-id',
-          username: 'superadmin',
-          name: 'Super Administrator',
-          email: 'admin@curaflow.com'
-        }
+        isValid: false,
+        error: 'Session validation error',
+        status: 500
       };
     }
 
+    // Check validation result
+    if (!validationResult || validationResult.length === 0 || !validationResult[0].is_valid) {
+      return {
+        isValid: false,
+        error: 'Invalid or expired superadmin session',
+        status: 401
+      };
+    }
+
+    const superadmin = validationResult[0];
+
     return {
-      isValid: false,
-      error: 'Invalid or expired superadmin session',
-      status: 401
+      isValid: true,
+      superadmin: {
+        id: superadmin.superadmin_id,
+        username: superadmin.username,
+        name: superadmin.full_name,
+        email: superadmin.email
+      }
     };
 
   } catch (error) {
