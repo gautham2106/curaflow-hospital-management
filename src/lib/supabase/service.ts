@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/client';
 import { createServiceSupabaseClient } from '@/lib/supabase/server';
 import type { 
   Doctor, 
@@ -13,44 +12,43 @@ import type {
 } from '@/lib/types';
 
 export class SupabaseService {
-  private supabase = createClient();
   private serviceSupabase = createServiceSupabaseClient();
 
   // ===== CLINICS =====
   async getClinics() {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.serviceSupabase
       .from('clinics')
       .select('*')
       .order('created_at', { ascending: false });
     
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   async getClinicById(id: string) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.serviceSupabase
       .from('clinics')
       .select('*')
       .eq('id', id)
       .single();
     
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   async createClinic(clinic: TablesInsert<'clinics'>) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.serviceSupabase
       .from('clinics')
       .insert(clinic)
       .select()
       .single();
     
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   async updateClinic(id: string, updates: TablesUpdate<'clinics'>) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.serviceSupabase
       .from('clinics')
       .update(updates)
       .eq('id', id)
@@ -58,12 +56,12 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   // ===== DOCTORS =====
   async getDoctors(clinicId: string, status?: string) {
-    let query = this.supabase
+    let query = this.serviceSupabase
       .from('doctors')
       .select('*')
       .eq('clinic_id', clinicId)
@@ -76,33 +74,33 @@ export class SupabaseService {
 
     const { data, error } = await query;
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   async getDoctorById(id: string) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.serviceSupabase
       .from('doctors')
       .select('*')
       .eq('id', id)
       .single();
     
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   async createDoctor(doctor: TablesInsert<'doctors'>) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.serviceSupabase
       .from('doctors')
       .insert(doctor)
       .select()
       .single();
     
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   async updateDoctor(id: string, updates: TablesUpdate<'doctors'>) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.serviceSupabase
       .from('doctors')
       .update(updates)
       .eq('id', id)
@@ -110,11 +108,11 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   async updateDoctorStatus(id: string, status: string) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.serviceSupabase
       .from('doctors')
       .update({ status })
       .eq('id', id)
@@ -122,7 +120,7 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   async deleteDoctor(id: string) {
@@ -136,18 +134,18 @@ export class SupabaseService {
 
   // ===== PATIENTS =====
   async getPatients(clinicId: string) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.serviceSupabase
       .from('patients')
       .select('*')
       .eq('clinic_id', clinicId)
       .order('name');
     
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   async searchPatients(clinicId: string, searchTerm: string) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.serviceSupabase
       .from('patients')
       .select('*')
       .eq('clinic_id', clinicId)
@@ -155,33 +153,33 @@ export class SupabaseService {
       .order('name');
     
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   async getPatientById(id: string) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.serviceSupabase
       .from('patients')
       .select('*')
       .eq('id', id)
       .single();
     
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   async createPatient(patient: TablesInsert<'patients'>) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.serviceSupabase
       .from('patients')
       .insert(patient)
       .select()
       .single();
     
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   async updatePatient(id: string, updates: TablesUpdate<'patients'>) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.serviceSupabase
       .from('patients')
       .update(updates)
       .eq('id', id)
@@ -189,7 +187,7 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   async deletePatient(id: string) {
@@ -203,25 +201,25 @@ export class SupabaseService {
 
   // ===== DEPARTMENTS =====
   async getDepartments(clinicId: string) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.serviceSupabase
       .from('departments')
       .select('*')
       .eq('clinic_id', clinicId)
       .order('name');
     
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   async createDepartment(department: TablesInsert<'departments'>) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.serviceSupabase
       .from('departments')
       .insert(department)
       .select()
       .single();
     
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   async deleteDepartment(id: string) {
@@ -235,29 +233,29 @@ export class SupabaseService {
 
   // ===== SESSIONS =====
   async getSessions(clinicId: string) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.serviceSupabase
       .from('sessions')
       .select('*')
       .eq('clinic_id', clinicId)
       .order('name');
     
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   async createSession(session: TablesInsert<'sessions'>) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.serviceSupabase
       .from('sessions')
       .insert(session)
       .select()
       .single();
     
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   async updateSession(id: string, updates: TablesUpdate<'sessions'>) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.serviceSupabase
       .from('sessions')
       .update(updates)
       .eq('id', id)
@@ -265,7 +263,7 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   async deleteSession(id: string) {
@@ -279,7 +277,7 @@ export class SupabaseService {
 
   // ===== VISITS =====
   async getVisits(clinicId: string, date?: string) {
-    let query = this.supabase
+    let query = this.serviceSupabase
       .from('visits')
       .select(`
         *,
@@ -294,11 +292,11 @@ export class SupabaseService {
 
     const { data, error } = await query.order('token_number');
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   async getVisitsByDateRange(clinicId: string, startDate: string, endDate: string) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.serviceSupabase
       .from('visits')
       .select(`
         *,
@@ -312,11 +310,11 @@ export class SupabaseService {
       .order('token_number');
     
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   async createVisit(visit: TablesInsert<'visits'>) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.serviceSupabase
       .from('visits')
       .insert(visit)
       .select(`
@@ -327,11 +325,11 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   async updateVisit(id: string, updates: TablesUpdate<'visits'>) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.serviceSupabase
       .from('visits')
       .update(updates)
       .eq('id', id)
@@ -343,11 +341,11 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   async getNextTokenNumber(clinicId: string, doctorId: string, date: string, session: string) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.serviceSupabase
       .from('visits')
       .select('token_number')
       .eq('clinic_id', clinicId)
@@ -367,11 +365,11 @@ export class SupabaseService {
       .rpc('get_full_queue', { p_clinic_id: clinicId });
     
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   async addToQueue(queueItem: TablesInsert<'queue'>) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.serviceSupabase
       .from('queue')
       .insert(queueItem)
       .select(`
@@ -385,11 +383,11 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   async updateQueueStatus(id: string, status: string) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.serviceSupabase
       .from('queue')
       .update({ status })
       .eq('id', id)
@@ -404,11 +402,11 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   async callPatient(queueId: string) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.serviceSupabase
       .from('queue')
       .update({ 
         status: 'In-consultation',
@@ -426,11 +424,11 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   async skipPatient(queueId: string) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.serviceSupabase
       .from('queue')
       .update({ status: 'Skipped' })
       .eq('id', queueId)
@@ -445,11 +443,11 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   async completePatient(queueId: string) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.serviceSupabase
       .from('queue')
       .update({ status: 'Completed' })
       .eq('id', queueId)
@@ -464,34 +462,34 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   // ===== AD RESOURCES =====
   async getAdResources(clinicId: string) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.serviceSupabase
       .from('ad_resources')
       .select('*')
       .eq('clinic_id', clinicId)
       .order('display_order');
     
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   async createAdResource(resource: TablesInsert<'ad_resources'>) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.serviceSupabase
       .from('ad_resources')
       .insert(resource)
       .select()
       .single();
     
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   async updateAdResource(id: string, updates: TablesUpdate<'ad_resources'>) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.serviceSupabase
       .from('ad_resources')
       .update(updates)
       .eq('id', id)
@@ -499,7 +497,7 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   async deleteAdResource(id: string) {
@@ -552,13 +550,13 @@ export class SupabaseService {
 
   // ===== AUTHENTICATION =====
   async signInWithPassword(email: string, password: string) {
-    const { data, error } = await this.supabase.auth.signInWithPassword({
+    const { data, error } = await this.serviceSupabase.auth.signInWithPassword({
       email,
       password,
     });
     
     if (error) throw error;
-    return data;
+    return data || [];
   }
 
   async signOut() {
