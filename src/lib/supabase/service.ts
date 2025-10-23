@@ -219,11 +219,11 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
-    return data || [];
+    return data;
   }
 
   async deleteDepartment(id: string) {
-    const { error } = await this.supabase
+    const { error } = await this.serviceSupabase
       .from('departments')
       .delete()
       .eq('id', id);

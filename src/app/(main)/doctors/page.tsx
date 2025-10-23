@@ -42,7 +42,9 @@ export default function DoctorsPage() {
           deptsRes.json()
         ]);
         setDoctors(doctorsData);
-        setDepartments(deptsData);
+        // Extract department names from objects
+        const departmentNames = deptsData.map((dept: any) => dept.name);
+        setDepartments(departmentNames);
       } catch (error) {
         toast({ title: "Error", description: "Failed to fetch initial data.", variant: "destructive" });
         console.error(error);
