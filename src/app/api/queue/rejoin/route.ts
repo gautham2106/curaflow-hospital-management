@@ -8,18 +8,26 @@ export async function POST(request: NextRequest) {
         const clinicId = getClinicId(request);
         if (!clinicId) return clinicIdNotFoundResponse();
 
-        const { queueId } = await request.json();
+        const { patientId } = await request.json();
         
-        if (!queueId) {
-            return NextResponse.json({ message: 'Queue ID is required' }, { status: 400 });
+        if (!patientId) {
+            return NextResponse.json({ message: 'Patient ID is required' }, { status: 400 });
+        }
+
+        // Find the queue item by patient ID (appointment_id)
+        const currentQueue = await supabaseService.getQueue(clinicId);
+        const queueItem = currentQueue.find(q => q.appointment_id === patientId);
+        
+        if (!queueItem) {
+            return NextResponse.json({ message: 'Queue item not found' }, { status: 404 });
         }
 
         // Update queue status to Waiting and reset check-in time
-        await supabaseService.updateQueueStatus(queueId, 'Waiting');
+        await supabaseService.updateQueueStatus(queueItem.id, 'Waiting');
         
         // Get updated queue
-        const queue = await supabaseService.getQueue(clinicId);
-        return NextResponse.json(queue);
+        const updatedQueue = await supabaseService.getQueue(clinicId);
+        return NextResponse.json(updatedQueue);
     } catch (error) {
         console.error('Error rejoining patient:', error);
         return NextResponse.json(
