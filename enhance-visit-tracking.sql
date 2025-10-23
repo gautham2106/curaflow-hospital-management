@@ -66,10 +66,10 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Create function to end session with detailed tracking
+-- Create function to end session with detailed tracking for specific doctor and session
 CREATE OR REPLACE FUNCTION end_session_with_tracking(
     p_clinic_id UUID, 
-    p_doctor_name TEXT, 
+    p_doctor_id UUID, 
     p_session_name TEXT,
     p_session_end_time TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 )
@@ -85,38 +85,75 @@ RETURNS TABLE(
 ) AS $$
 DECLARE
     session_stats RECORD;
+    visit_record RECORD;
+    waiting_time INTEGER;
+    consultation_time INTEGER;
+    total_time INTEGER;
 BEGIN
-    -- Update all visits for this doctor in this session
+    -- First, complete any ongoing consultations for this doctor
     UPDATE visits 
     SET 
-        status = CASE 
-            WHEN status = 'Waiting' THEN 'No-show'
-            WHEN status = 'In-consultation' THEN 'Completed'
-            ELSE status
-        END,
-        completed_time = CASE 
-            WHEN status = 'In-consultation' THEN p_session_end_time
-            ELSE completed_time
-        END,
-        session_end_time = p_session_end_time,
+        status = 'Completed',
+        completed_time = p_session_end_time,
         waiting_time_minutes = CASE 
             WHEN called_time IS NOT NULL AND check_in_time IS NOT NULL THEN
                 EXTRACT(EPOCH FROM (called_time - check_in_time)) / 60
-            ELSE
-                EXTRACT(EPOCH FROM (p_session_end_time - check_in_time)) / 60
+            ELSE 0
         END,
         consultation_time_minutes = CASE 
             WHEN called_time IS NOT NULL THEN
                 EXTRACT(EPOCH FROM (p_session_end_time - called_time)) / 60
             ELSE 0
         END,
-        total_time_minutes = EXTRACT(EPOCH FROM (p_session_end_time - check_in_time)) / 60
+        total_time_minutes = CASE 
+            WHEN check_in_time IS NOT NULL THEN
+                EXTRACT(EPOCH FROM (p_session_end_time - check_in_time)) / 60
+            ELSE 0
+        END,
+        session_end_time = p_session_end_time
     WHERE clinic_id = p_clinic_id 
-    AND doctor_id = (SELECT id FROM doctors WHERE name = p_doctor_name AND clinic_id = p_clinic_id)
+    AND doctor_id = p_doctor_id
     AND session = p_session_name
-    AND date = CURRENT_DATE;
+    AND date = CURRENT_DATE
+    AND status = 'In-consultation';
     
-    -- Calculate session statistics
+    -- Then, mark waiting patients as no-show
+    UPDATE visits 
+    SET 
+        status = 'No-show',
+        session_end_time = p_session_end_time,
+        waiting_time_minutes = CASE 
+            WHEN check_in_time IS NOT NULL THEN
+                EXTRACT(EPOCH FROM (p_session_end_time - check_in_time)) / 60
+            ELSE 0
+        END,
+        consultation_time_minutes = 0,
+        total_time_minutes = CASE 
+            WHEN check_in_time IS NOT NULL THEN
+                EXTRACT(EPOCH FROM (p_session_end_time - check_in_time)) / 60
+            ELSE 0
+        END
+    WHERE clinic_id = p_clinic_id 
+    AND doctor_id = p_doctor_id
+    AND session = p_session_name
+    AND date = CURRENT_DATE
+    AND status = 'Waiting';
+    
+    -- Update queue status for this doctor's session
+    UPDATE queue 
+    SET status = 'Completed'
+    WHERE clinic_id = p_clinic_id 
+    AND appointment_id IN (
+        SELECT v.id 
+        FROM visits v 
+        WHERE v.doctor_id = p_doctor_id 
+        AND v.session = p_session_name
+        AND v.date = CURRENT_DATE
+        AND v.clinic_id = p_clinic_id
+    )
+    AND status IN ('Waiting', 'In-consultation');
+    
+    -- Calculate session statistics for this specific doctor and session
     SELECT 
         COUNT(*) as total_patients,
         COUNT(CASE WHEN status = 'Completed' THEN 1 END) as completed_patients,
@@ -129,7 +166,7 @@ BEGIN
     INTO session_stats
     FROM visits 
     WHERE clinic_id = p_clinic_id 
-    AND doctor_id = (SELECT id FROM doctors WHERE name = p_doctor_name AND clinic_id = p_clinic_id)
+    AND doctor_id = p_doctor_id
     AND session = p_session_name
     AND date = CURRENT_DATE;
     

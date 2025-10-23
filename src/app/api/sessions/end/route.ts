@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
         }
 
         // End session with detailed tracking
-        const sessionStats = await supabaseService.endSessionWithTracking(clinicId, doctor.name, sessionName);
+        const sessionStats = await supabaseService.endSessionWithTracking(clinicId, doctorId, sessionName);
 
         // Get updated queue
         const queue = await supabaseService.getQueue(clinicId);

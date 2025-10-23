@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ message: 'Queue item not found' }, { status: 404 });
         }
 
-        await supabaseService.skipPatient(queueItem.id);
+        await supabaseService.skipPatient(queueItem.id, 'Skipped by receptionist');
         
         // Get updated queue
         const updatedQueue = await supabaseService.getQueue(clinicId);

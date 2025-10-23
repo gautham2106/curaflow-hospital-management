@@ -407,7 +407,7 @@ export class SupabaseService {
     return data;
   }
 
-  async callPatient(queueId: string) {
+  async callPatient(queueId: string, outOfTurnReason?: string) {
     const { data, error } = await this.serviceSupabase
       .from('queue')
       .update({ 
@@ -418,6 +418,7 @@ export class SupabaseService {
       .select(`
         *,
         visits!inner(
+          id,
           token_number,
           patients!inner(name),
           doctors!inner(name)
@@ -426,17 +427,35 @@ export class SupabaseService {
       .single();
     
     if (error) throw error;
+    
+    // Update visit record with call details
+    if (data.visits) {
+      const { error: visitError } = await this.serviceSupabase
+        .from('visits')
+        .update({ 
+          status: 'In-consultation',
+          called_time: new Date().toISOString(),
+          was_out_of_turn: !!outOfTurnReason,
+          out_of_turn_reason: outOfTurnReason || null
+        })
+        .eq('id', data.visits.id);
+      
+      if (visitError) throw visitError;
+    }
+    
     return data;
   }
 
-  async skipPatient(queueId: string) {
-    const { data, error } = await this.serviceSupabase
+  async skipPatient(queueId: string, skipReason?: string) {
+    // First update the queue status
+    const { data: queueData, error: queueError } = await this.serviceSupabase
       .from('queue')
       .update({ status: 'Skipped' })
       .eq('id', queueId)
       .select(`
         *,
         visits!inner(
+          id,
           token_number,
           patients!inner(name),
           doctors!inner(name)
@@ -444,8 +463,23 @@ export class SupabaseService {
       `)
       .single();
     
-    if (error) throw error;
-    return data;
+    if (queueError) throw queueError;
+    
+    // Then update the visit record with skip details
+    if (queueData.visits) {
+      const { error: visitError } = await this.serviceSupabase
+        .from('visits')
+        .update({ 
+          status: 'Skipped',
+          was_skipped: true,
+          skip_reason: skipReason || 'No reason provided'
+        })
+        .eq('id', queueData.visits.id);
+      
+      if (visitError) throw visitError;
+    }
+    
+    return queueData;
   }
 
   async completePatient(queueId: string) {
@@ -550,11 +584,11 @@ export class SupabaseService {
     if (error) throw error;
   }
 
-  async endSessionWithTracking(clinicId: string, doctorName: string, sessionName: string) {
+  async endSessionWithTracking(clinicId: string, doctorId: string, sessionName: string) {
     const { data, error } = await this.serviceSupabase
       .rpc('end_session_with_tracking', { 
         p_clinic_id: clinicId,
-        p_doctor_name: doctorName,
+        p_doctor_id: doctorId,
         p_session_name: sessionName
       });
     

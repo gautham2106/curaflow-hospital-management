@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Call the patient
-        const updatedQueueItem = await supabaseService.callPatient(queueItem.id);
+        const updatedQueueItem = await supabaseService.callPatient(queueItem.id, reason);
         
         // Update visit record if reason is provided
         if (reason && updatedQueueItem.visits) {
