@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseService } from '@/lib/supabase/service';
 
-// Superadmin login with fallback authentication
+// Simple superadmin authentication without database dependency
 export async function POST(request: NextRequest) {
   try {
     const { username, password } = await request.json();
@@ -14,49 +13,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Try database function first
-    try {
-      const { data: authResult, error: authError } = await supabaseService.supabase
-        .rpc('authenticate_superadmin', { 
-          p_username: username, 
-          p_password: password 
-        });
-
-      if (!authError && authResult && authResult.length > 0 && authResult[0].is_authenticated) {
-        const superadmin = authResult[0];
-        
-        // Generate session token
-        const sessionToken = `superadmin-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        
-        // Store session in database
-        await supabaseService.supabase
-          .from('superadmin_sessions')
-          .insert({
-            superadmin_id: superadmin.superadmin_id,
-            token: sessionToken,
-            expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-            ip_address: request.headers.get('x-forwarded-for') || 'unknown',
-            user_agent: request.headers.get('user-agent') || 'unknown'
-          });
-
-        return NextResponse.json({
-          success: true,
-          superadmin: { 
-            id: superadmin.superadmin_id,
-            name: superadmin.full_name, 
-            username: superadmin.username,
-            email: superadmin.email,
-            role: 'superadmin' 
-          },
-          token: sessionToken,
-          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-        });
-      }
-    } catch (dbError) {
-      console.log('Database function not available, trying fallback authentication...');
-    }
-
-    // Fallback: Simple hardcoded authentication for demo
+    // Simple hardcoded authentication
     if (username === 'superadmin' && password === 'superadmin123') {
       // Generate session token
       const sessionToken = `superadmin-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -90,7 +47,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Validate superadmin session with fallback
+// Simple session validation
 export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -103,30 +60,7 @@ export async function GET(request: NextRequest) {
 
     const token = authHeader.substring(7);
 
-    // Try database validation first
-    try {
-      const { data: validationResult, error: validationError } = await supabaseService.supabase
-        .rpc('validate_superadmin_session', { p_token: token });
-
-      if (!validationError && validationResult && validationResult.length > 0 && validationResult[0].is_valid) {
-        const superadmin = validationResult[0];
-        
-        return NextResponse.json({
-          success: true,
-          superadmin: { 
-            id: superadmin.superadmin_id,
-            name: superadmin.full_name, 
-            username: superadmin.username,
-            email: superadmin.email,
-            role: 'superadmin' 
-          }
-        });
-      }
-    } catch (dbError) {
-      console.log('Database validation not available, trying fallback...');
-    }
-
-    // Fallback: Simple token validation
+    // Simple token validation
     if (token.startsWith('superadmin-')) {
       return NextResponse.json({
         success: true,

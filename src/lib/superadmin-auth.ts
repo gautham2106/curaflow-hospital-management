@@ -1,6 +1,5 @@
-// Access control middleware for superadmin routes
+// Simplified superadmin authentication middleware
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseService } from '@/lib/supabase/service';
 
 export async function validateSuperadminAccess(request: NextRequest) {
   try {
@@ -15,29 +14,7 @@ export async function validateSuperadminAccess(request: NextRequest) {
 
     const token = authHeader.substring(7);
 
-    // Try database validation first
-    try {
-      const { data: validationResult, error: validationError } = await supabaseService.supabase
-        .rpc('validate_superadmin_session', { p_token: token });
-
-      if (!validationError && validationResult && validationResult.length > 0 && validationResult[0].is_valid) {
-        const superadmin = validationResult[0];
-        
-        return {
-          isValid: true,
-          superadmin: {
-            id: superadmin.superadmin_id,
-            username: superadmin.username,
-            name: superadmin.full_name,
-            email: superadmin.email
-          }
-        };
-      }
-    } catch (dbError) {
-      console.log('Database validation not available, trying fallback...');
-    }
-
-    // Fallback: Simple token validation
+    // Simple token validation
     if (token.startsWith('superadmin-')) {
       return {
         isValid: true,
