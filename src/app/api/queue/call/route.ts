@@ -8,10 +8,10 @@ export async function POST(request: NextRequest) {
         const clinicId = getClinicId(request);
         if (!clinicId) return clinicIdNotFoundResponse();
 
-        const { queueId, doctorId, reason } = await request.json();
+        const { patientId, doctorId, reason } = await request.json();
 
-        if (!queueId) {
-            return NextResponse.json({ message: 'Queue ID is required' }, { status: 400 });
+        if (!patientId) {
+            return NextResponse.json({ message: 'Patient ID is required' }, { status: 400 });
         }
 
         // Complete any previous consultation for this doctor
@@ -19,8 +19,16 @@ export async function POST(request: NextRequest) {
             await supabaseService.completePreviousConsultation(doctorId, clinicId);
         }
 
+        // Find the queue item by patient ID
+        const queue = await supabaseService.getQueue(clinicId);
+        const queueItem = queue.find(q => q.appointment_id === patientId);
+        
+        if (!queueItem) {
+            return NextResponse.json({ message: 'Queue item not found' }, { status: 404 });
+        }
+
         // Call the patient
-        const updatedQueueItem = await supabaseService.callPatient(queueId);
+        const updatedQueueItem = await supabaseService.callPatient(queueItem.id);
         
         // Update visit record if reason is provided
         if (reason && updatedQueueItem.visits) {

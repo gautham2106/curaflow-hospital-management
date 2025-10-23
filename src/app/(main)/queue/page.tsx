@@ -156,7 +156,8 @@ export default function LiveQueuePage() {
                     checkInTime: new Date(q.check_in_time),
                     patientName: q.patient_name,
                     doctorName: q.doctor_name,
-                    tokenNumber: q.token_number
+                    tokenNumber: q.token_number,
+                    session: q.session
                 })));
                 setDoctors(doctorsData);
                 setSessionConfigs(sessionsData);
@@ -179,10 +180,13 @@ export default function LiveQueuePage() {
     const selectedDoctor = doctors.find(d => d.id === selectedDoctorId);
 
     const doctorQueue = useMemo(() => {
-        if (!selectedDoctor) return [];
+        if (!selectedDoctor || !currentSession) return [];
         
         return [...queue]
-            .filter(item => item.doctorName === selectedDoctor.name)
+            .filter(item => 
+                item.doctorName === selectedDoctor.name && 
+                item.session === currentSession.name
+            )
             .sort((a, b) => {
                 const statusOrder = { 'In-consultation': 1, 'Waiting': 2, 'Skipped': 3, 'Completed': 4, 'Cancelled': 5 };
                 if(statusOrder[a.status] !== statusOrder[b.status]) {
@@ -191,7 +195,7 @@ export default function LiveQueuePage() {
                 return new Date(a.checkInTime).getTime() - new Date(b.checkInTime).getTime();
             });
 
-    }, [queue, selectedDoctor]);
+    }, [queue, selectedDoctor, currentSession]);
 
     const queueStats = useMemo(() => {
         const total = doctorQueue.length;
@@ -217,7 +221,8 @@ export default function LiveQueuePage() {
                 checkInTime: new Date(q.check_in_time),
                 patientName: q.patient_name,
                 doctorName: q.doctor_name,
-                tokenNumber: q.token_number
+                tokenNumber: q.token_number,
+                session: q.session
             })));
             toast({
                 title: "Patient Called",
@@ -264,7 +269,8 @@ export default function LiveQueuePage() {
                 checkInTime: new Date(q.check_in_time),
                 patientName: q.patient_name,
                 doctorName: q.doctor_name,
-                tokenNumber: q.token_number
+                tokenNumber: q.token_number,
+                session: q.session
             })));
             toast({
                 title: 'Patient Skipped',
@@ -290,7 +296,8 @@ export default function LiveQueuePage() {
                 checkInTime: new Date(q.check_in_time),
                 patientName: q.patient_name,
                 doctorName: q.doctor_name,
-                tokenNumber: q.token_number
+                tokenNumber: q.token_number,
+                session: q.session
             })));
             toast({
                 title: 'Patient Rejoined',
@@ -313,7 +320,8 @@ export default function LiveQueuePage() {
                 checkInTime: new Date(q.check_in_time),
                 patientName: q.patient_name,
                 doctorName: q.doctor_name,
-                tokenNumber: q.token_number
+                tokenNumber: q.token_number,
+                session: q.session
             })));
 
             toast({
