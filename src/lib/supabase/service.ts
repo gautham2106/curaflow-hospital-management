@@ -550,6 +550,18 @@ export class SupabaseService {
     if (error) throw error;
   }
 
+  async endSessionWithTracking(clinicId: string, doctorName: string, sessionName: string) {
+    const { data, error } = await this.serviceSupabase
+      .rpc('end_session_with_tracking', { 
+        p_clinic_id: clinicId,
+        p_doctor_name: doctorName,
+        p_session_name: sessionName
+      });
+    
+    if (error) throw error;
+    return data[0]; // Return the first (and only) row of statistics
+  }
+
   // ===== AUTHENTICATION =====
   async signInWithPassword(email: string, password: string) {
     const { data, error } = await this.supabase.auth.signInWithPassword({

@@ -322,8 +322,10 @@ export default function LiveQueuePage() {
         try {
             const response = await post('/api/sessions/end', { doctorId: selectedDoctorId, sessionName: currentSession.name });
             if (!response) return;
-            const updatedQueue = await response.json();
-            setQueue(updatedQueue.map((q: any) => ({
+            const result = await response.json();
+            
+            // Update queue
+            setQueue(result.queue.map((q: any) => ({
                 ...q, 
                 checkInTime: new Date(q.check_in_time),
                 patientName: q.patient_name,
@@ -333,10 +335,23 @@ export default function LiveQueuePage() {
                 appointmentId: q.appointment_id
             })));
 
+            // Display session statistics
+            const stats = result.sessionStats;
+            const statsMessage = `
+Session Summary for ${selectedDoctor?.name}:
+• Total Patients: ${stats.totalPatients}
+• Completed: ${stats.completedPatients}
+• No-Show: ${stats.noShowPatients}
+• Skipped: ${stats.skippedPatients}
+• Avg Waiting Time: ${stats.avgWaitingTime} min
+• Avg Consultation Time: ${stats.avgConsultationTime} min
+• Total Revenue: ₹${stats.totalRevenue}
+            `.trim();
+
             toast({
-                title: "Session Ended",
-                description: `The ${currentSession?.name} session for ${selectedDoctor?.name} has been ended.`,
-                variant: 'destructive'
+                title: "Session Ended Successfully",
+                description: statsMessage,
+                duration: 8000, // Show for 8 seconds to allow reading
             });
         } catch (error) {
             toast({ title: 'Error', description: 'Failed to end the session.', variant: 'destructive' });

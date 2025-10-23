@@ -142,7 +142,18 @@ export default function VisitRegisterPage() {
           patientName: r.patients?.name || 'Unknown',
           phone: r.patients?.phone || '',
           doctorName: r.doctors?.name || 'Unknown',
-          tokenNumber: r.token_number
+          tokenNumber: r.token_number,
+          // Enhanced tracking fields
+          waitingTimeMinutes: r.waiting_time_minutes || 0,
+          consultationTimeMinutes: r.consultation_time_minutes || 0,
+          totalTimeMinutes: r.total_time_minutes || 0,
+          wasSkipped: r.was_skipped || false,
+          skipReason: r.skip_reason || '',
+          wasOutOfTurn: r.was_out_of_turn || false,
+          outOfTurnReason: r.out_of_turn_reason || '',
+          sessionEndTime: r.session_end_time ? new Date(r.session_end_time) : undefined,
+          visitNotes: r.visit_notes || '',
+          patientSatisfactionRating: r.patient_satisfaction_rating || null
         })));
       } catch (e) {
         toast({ title: "Error", description: "Could not fetch visit records." });
