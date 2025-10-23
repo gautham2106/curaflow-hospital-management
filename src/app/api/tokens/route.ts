@@ -93,6 +93,11 @@ export async function POST(request: NextRequest) {
             clinicId: clinicId
         };
         
+        // Debug logging
+        console.log('Token API - Generated tokenData:', JSON.stringify(tokenData, null, 2));
+        console.log('Token API - nextTokenNumber:', nextTokenNumber);
+        console.log('Token API - tokenNumber type:', typeof nextTokenNumber);
+        
         return NextResponse.json(tokenData, { status: 201 });
     } catch (error) {
         console.error('Error creating token:', error);

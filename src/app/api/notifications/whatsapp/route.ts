@@ -44,6 +44,11 @@ async function shortenUrl(longUrl: string): Promise<string> {
 export async function POST(request: NextRequest) {
     const { tokenData, sessionTimeRange, clinicName } = await request.json();
 
+    // Debug logging
+    console.log('WhatsApp API - Received tokenData:', JSON.stringify(tokenData, null, 2));
+    console.log('WhatsApp API - tokenNumber:', tokenData.tokenNumber);
+    console.log('WhatsApp API - tokenNumber type:', typeof tokenData.tokenNumber);
+
     const accessToken = 'EAAQzPY217joBPghgZAIW1IQ1u7OlHDH419Y6LQDbJj9aJ1xwgY1zwWCdV1l35yRrYTqy76UwZCZCIsLQzejlv5ro5hEiyNrtSZBx8VyBfJTimZBN7jXjA4ZCBpWbZBLRD35MZCGEPinPoMPGrch7A4B1iqKoaj7TZCIUs80x4Xy4P2b8Cp6eHUjZCbylkTkBpiSHTYNAZDZD';
     const phoneId = '591459790706231';
     const endpointUrl = `https://graph.facebook.com/v22.0/${phoneId}/messages`;
