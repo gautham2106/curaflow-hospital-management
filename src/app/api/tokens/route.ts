@@ -63,9 +63,7 @@ export async function POST(request: NextRequest) {
             date: format(apptDate, 'yyyy-MM-dd'),
             session: session,
             check_in_time: new Date().toISOString(),
-            status: 'Scheduled',
-            fee: 500,
-            payment_method: 'Cash'
+            status: 'Scheduled'
         });
         
         // Add to queue if it's today's appointment

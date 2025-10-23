@@ -36,11 +36,12 @@ export async function POST(request: NextRequest) {
         // Call the patient
         const updatedQueueItem = await supabaseService.callPatient(queueItem.id, reason);
         
-        // Update visit record if reason is provided
-        if (reason && updatedQueueItem.visits) {
+        // Update visit record with call details
+        if (updatedQueueItem.visits) {
             await supabaseService.updateVisit(updatedQueueItem.appointment_id, {
-                out_of_turn_reason: reason,
-                called_time: new Date().toISOString()
+                called_time: new Date().toISOString(),
+                was_out_of_turn: !!reason,
+                out_of_turn_reason: reason || null
             });
         }
 
