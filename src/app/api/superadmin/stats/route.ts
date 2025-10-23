@@ -1,30 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseService } from '@/lib/supabase/service';
-
-// Get superadmin ID from token
-function getSuperadminId(request: NextRequest): string | null {
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return null;
-  }
-  
-  const token = authHeader.substring(7);
-  
-  // For now, we'll extract superadmin ID from the token
-  // In production, you'd validate the token and get the ID from the session
-  return 'superadmin-id'; // This would be the actual superadmin ID from token validation
-}
+import { validateSuperadminAccess, createErrorResponse } from '@/lib/superadmin-auth';
 
 // Get superadmin statistics
 export async function GET(request: NextRequest) {
   try {
-    const superadminId = getSuperadminId(request);
-    if (!superadminId) {
-      return NextResponse.json(
-        { error: 'Superadmin authentication required' },
-        { status: 401 }
-      );
+    // Validate superadmin access
+    const accessValidation = await validateSuperadminAccess(request);
+    if (!accessValidation.isValid) {
+      return createErrorResponse(accessValidation.error!, accessValidation.status!);
     }
+
+    const superadminId = accessValidation.superadmin!.id;
 
     // Get statistics using superadmin function
     const { data: stats, error } = await supabaseService.supabase

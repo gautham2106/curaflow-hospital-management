@@ -32,7 +32,6 @@ interface Clinic {
   email: string;
   admin_username: string;
   admin_name: string;
-  subscription_plan: string;
   max_doctors: number;
   max_patients_per_day: number;
   is_active: boolean;
@@ -52,7 +51,6 @@ interface ClinicFormData {
   admin_username: string;
   admin_pin: string;
   admin_name: string;
-  subscription_plan: string;
   max_doctors: number;
   max_patients_per_day: number;
   notes: string;
@@ -74,7 +72,6 @@ export default function SuperadminDashboard() {
     admin_username: '',
     admin_pin: '',
     admin_name: '',
-    subscription_plan: 'basic',
     max_doctors: 10,
     max_patients_per_day: 100,
     notes: ''
@@ -308,7 +305,6 @@ export default function SuperadminDashboard() {
       admin_username: '',
       admin_pin: '',
       admin_name: '',
-      subscription_plan: 'basic',
       max_doctors: 10,
       max_patients_per_day: 100,
       notes: ''
@@ -325,7 +321,6 @@ export default function SuperadminDashboard() {
       admin_username: clinic.admin_username,
       admin_pin: '', // Don't pre-fill PIN for security
       admin_name: clinic.admin_name,
-      subscription_plan: clinic.subscription_plan,
       max_doctors: clinic.max_doctors,
       max_patients_per_day: clinic.max_patients_per_day,
       notes: ''
@@ -577,19 +572,6 @@ export default function SuperadminDashboard() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="subscription_plan">Subscription Plan</Label>
-                        <select
-                          id="subscription_plan"
-                          value={formData.subscription_plan}
-                          onChange={(e) => setFormData(prev => ({ ...prev, subscription_plan: e.target.value }))}
-                          className="w-full p-2 border border-gray-300 rounded-md"
-                        >
-                          <option value="basic">Basic</option>
-                          <option value="premium">Premium</option>
-                          <option value="enterprise">Enterprise</option>
-                        </select>
-                      </div>
-                      <div className="space-y-2">
                         <Label htmlFor="max_doctors">Max Doctors</Label>
                         <Input
                           id="max_doctors"
@@ -639,7 +621,6 @@ export default function SuperadminDashboard() {
                     <TableRow>
                       <TableHead>Clinic Name</TableHead>
                       <TableHead>Admin</TableHead>
-                      <TableHead>Plan</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Stats</TableHead>
                       <TableHead>Created</TableHead>
@@ -660,11 +641,6 @@ export default function SuperadminDashboard() {
                             <div className="font-medium">{clinic.admin_name}</div>
                             <div className="text-sm text-muted-foreground">@{clinic.admin_username}</div>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={clinic.subscription_plan === 'enterprise' ? 'default' : 'secondary'}>
-                            {clinic.subscription_plan}
-                          </Badge>
                         </TableCell>
                         <TableCell>
                           <Badge variant={clinic.is_active ? 'default' : 'destructive'}>
@@ -790,19 +766,6 @@ export default function SuperadminDashboard() {
                   placeholder="Enter admin full name"
                   required
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit_subscription_plan">Subscription Plan</Label>
-                <select
-                  id="edit_subscription_plan"
-                  value={formData.subscription_plan}
-                  onChange={(e) => setFormData(prev => ({ ...prev, subscription_plan: e.target.value }))}
-                  className="w-full p-2 border border-gray-300 rounded-md"
-                >
-                  <option value="basic">Basic</option>
-                  <option value="premium">Premium</option>
-                  <option value="enterprise">Enterprise</option>
-                </select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit_max_doctors">Max Doctors</Label>

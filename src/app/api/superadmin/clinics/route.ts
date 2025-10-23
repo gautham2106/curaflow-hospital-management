@@ -1,31 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseService } from '@/lib/supabase/service';
-
-// Get superadmin ID from token
-function getSuperadminId(request: NextRequest): string | null {
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return null;
-  }
-  
-  const token = authHeader.substring(7);
-  
-  // For now, we'll extract superadmin ID from the token
-  // In production, you'd validate the token and get the ID from the session
-  // This is a simplified version for demo purposes
-  return 'superadmin-id'; // This would be the actual superadmin ID from token validation
-}
+import { validateSuperadminAccess, createErrorResponse } from '@/lib/superadmin-auth';
 
 // Create new clinic
 export async function POST(request: NextRequest) {
   try {
-    const superadminId = getSuperadminId(request);
-    if (!superadminId) {
-      return NextResponse.json(
-        { error: 'Superadmin authentication required' },
-        { status: 401 }
-      );
+    // Validate superadmin access
+    const accessValidation = await validateSuperadminAccess(request);
+    if (!accessValidation.isValid) {
+      return createErrorResponse(accessValidation.error!, accessValidation.status!);
     }
+
+    const superadminId = accessValidation.superadmin!.id;
 
     const {
       name,
@@ -35,7 +21,6 @@ export async function POST(request: NextRequest) {
       admin_username,
       admin_pin,
       admin_name,
-      subscription_plan = 'basic',
       max_doctors = 10,
       max_patients_per_day = 100,
       notes
@@ -68,7 +53,7 @@ export async function POST(request: NextRequest) {
         p_admin_username: admin_username,
         p_admin_pin: admin_pin,
         p_admin_name: admin_name,
-        p_subscription_plan: subscription_plan,
+        p_subscription_plan: 'premium', // All clinics get premium by default
         p_max_doctors: max_doctors,
         p_max_patients_per_day: max_patients_per_day,
         p_notes: notes || null
@@ -113,13 +98,13 @@ export async function POST(request: NextRequest) {
 // Get all clinics
 export async function GET(request: NextRequest) {
   try {
-    const superadminId = getSuperadminId(request);
-    if (!superadminId) {
-      return NextResponse.json(
-        { error: 'Superadmin authentication required' },
-        { status: 401 }
-      );
+    // Validate superadmin access
+    const accessValidation = await validateSuperadminAccess(request);
+    if (!accessValidation.isValid) {
+      return createErrorResponse(accessValidation.error!, accessValidation.status!);
     }
+
+    const superadminId = accessValidation.superadmin!.id;
 
     // Get all clinics using superadmin function
     const { data: clinics, error } = await supabaseService.supabase

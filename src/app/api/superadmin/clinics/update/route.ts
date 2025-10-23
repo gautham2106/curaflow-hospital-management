@@ -1,30 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseService } from '@/lib/supabase/service';
-
-// Get superadmin ID from token
-function getSuperadminId(request: NextRequest): string | null {
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return null;
-  }
-  
-  const token = authHeader.substring(7);
-  
-  // For now, we'll extract superadmin ID from the token
-  // In production, you'd validate the token and get the ID from the session
-  return 'superadmin-id'; // This would be the actual superadmin ID from token validation
-}
+import { validateSuperadminAccess, createErrorResponse } from '@/lib/superadmin-auth';
 
 // Update clinic
 export async function PUT(request: NextRequest) {
   try {
-    const superadminId = getSuperadminId(request);
-    if (!superadminId) {
-      return NextResponse.json(
-        { error: 'Superadmin authentication required' },
-        { status: 401 }
-      );
+    // Validate superadmin access
+    const accessValidation = await validateSuperadminAccess(request);
+    if (!accessValidation.isValid) {
+      return createErrorResponse(accessValidation.error!, accessValidation.status!);
     }
+
+    const superadminId = accessValidation.superadmin!.id;
 
     const { clinicId, ...updates } = await request.json();
 
@@ -47,7 +34,6 @@ export async function PUT(request: NextRequest) {
         p_admin_username: updates.admin_username || null,
         p_admin_pin: updates.admin_pin || null,
         p_admin_name: updates.admin_name || null,
-        p_subscription_plan: updates.subscription_plan || null,
         p_max_doctors: updates.max_doctors || null,
         p_max_patients_per_day: updates.max_patients_per_day || null,
         p_is_active: updates.is_active !== undefined ? updates.is_active : null,
@@ -86,13 +72,13 @@ export async function PUT(request: NextRequest) {
 // Deactivate clinic
 export async function DELETE(request: NextRequest) {
   try {
-    const superadminId = getSuperadminId(request);
-    if (!superadminId) {
-      return NextResponse.json(
-        { error: 'Superadmin authentication required' },
-        { status: 401 }
-      );
+    // Validate superadmin access
+    const accessValidation = await validateSuperadminAccess(request);
+    if (!accessValidation.isValid) {
+      return createErrorResponse(accessValidation.error!, accessValidation.status!);
     }
+
+    const superadminId = accessValidation.superadmin!.id;
 
     const { searchParams } = new URL(request.url);
     const clinicId = searchParams.get('clinicId');
