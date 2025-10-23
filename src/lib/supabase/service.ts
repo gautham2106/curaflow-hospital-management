@@ -1,4 +1,5 @@
 import { createServiceSupabaseClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/client';
 import type { 
   Doctor, 
   Patient, 
@@ -13,6 +14,7 @@ import type {
 
 export class SupabaseService {
   private serviceSupabase = createServiceSupabaseClient();
+  private supabase = createClient();
 
   // ===== CLINICS =====
   async getClinics() {
@@ -550,13 +552,13 @@ export class SupabaseService {
 
   // ===== AUTHENTICATION =====
   async signInWithPassword(email: string, password: string) {
-    const { data, error } = await this.serviceSupabase.auth.signInWithPassword({
+    const { data, error } = await this.supabase.auth.signInWithPassword({
       email,
       password,
     });
     
     if (error) throw error;
-    return data || [];
+    return data;
   }
 
   async signOut() {
