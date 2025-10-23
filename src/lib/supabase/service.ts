@@ -470,7 +470,7 @@ export class SupabaseService {
       const { error: visitError } = await this.serviceSupabase
         .from('visits')
         .update({ 
-          status: 'Skipped',
+          status: 'Cancelled', // Use 'Cancelled' instead of 'Skipped' for visits table
           was_skipped: true,
           skip_reason: skipReason || 'No reason provided'
         })
@@ -571,6 +571,47 @@ export class SupabaseService {
       });
     
     if (error) throw error;
+  }
+
+  async completeCurrentPatientInQueue(doctorId: string, clinicId: string) {
+    // Find and complete any patient currently in consultation for this doctor
+    const { data: currentPatients, error: findError } = await this.serviceSupabase
+      .from('queue')
+      .select(`
+        *,
+        visits!inner(
+          id,
+          doctor_id,
+          status
+        )
+      `)
+      .eq('clinic_id', clinicId)
+      .eq('status', 'In-consultation')
+      .eq('visits.doctor_id', doctorId);
+    
+    if (findError) throw findError;
+    
+    if (currentPatients && currentPatients.length > 0) {
+      // Complete all current patients for this doctor
+      for (const patient of currentPatients) {
+        // Update queue status
+        await this.serviceSupabase
+          .from('queue')
+          .update({ status: 'Completed' })
+          .eq('id', patient.id);
+        
+        // Update visit status
+        await this.serviceSupabase
+          .from('visits')
+          .update({ 
+            status: 'Completed',
+            completed_time: new Date().toISOString()
+          })
+          .eq('id', patient.visits.id);
+      }
+      
+      console.log(`Completed ${currentPatients.length} current patient(s) for doctor ${doctorId}`);
+    }
   }
 
   async endSessionForDoctor(clinicId: string, doctorName: string, sessionName: string) {

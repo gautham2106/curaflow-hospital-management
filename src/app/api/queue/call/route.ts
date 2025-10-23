@@ -14,12 +14,13 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ message: 'Patient ID is required' }, { status: 400 });
         }
 
-        // Complete any previous consultation for this doctor (optional)
+        // Complete any current patient in consultation for this doctor
         if (doctorId) {
             try {
-                await supabaseService.completePreviousConsultation(doctorId, clinicId);
+                await supabaseService.completeCurrentPatientInQueue(doctorId, clinicId);
+                console.log('Successfully completed current patient for doctor:', doctorId);
             } catch (error) {
-                console.log('Warning: Could not complete previous consultation:', error);
+                console.error('Error completing current patient:', error);
                 // Continue execution even if this fails
             }
         }
