@@ -21,6 +21,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useFetch } from '@/hooks/use-api';
+import { useCrossPageSync } from '@/hooks/use-cross-page-sync';
 
 
 const PatientHistory = ({ patient, onBack }: { patient: Patient; onBack: () => void }) => {
@@ -75,7 +76,7 @@ const PatientHistory = ({ patient, onBack }: { patient: Patient; onBack: () => v
                           <div key={visit.id} className="flex justify-between items-center p-3 rounded-md border bg-muted/30">
                               <div>
                                   <p className="font-semibold">{format(parseISO(visit.date as any), 'PPP')}</p>
-                                  <p className="text-sm text-muted-foreground">{visit.doctorName}</p>
+                                  <p className="text-sm text-muted-foreground">{(visit as any).doctor_name || 'N/A'}</p>
                               </div>
                               <Badge variant={visit.status === 'Completed' ? 'secondary' : 'destructive'}>{visit.status}</Badge>
                           </div>
@@ -128,6 +129,9 @@ export default function GenerateTokenPage() {
       setClinicId(id);
     }
   }, []);
+
+  // Use cross-page sync hook
+  const { triggerUpdate } = useCrossPageSync();
   
   useEffect(() => {
     if (!clinicId) return;
@@ -290,6 +294,9 @@ export default function GenerateTokenPage() {
         }
 
         const tokenData: TokenData = await response.json();
+
+        // Trigger cross-page updates for new token
+        triggerUpdate('token');
 
         setTokenToPrint(tokenData);
         setPreviewOpen(true);

@@ -1,61 +1,63 @@
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { supabaseService } from '@/lib/supabase/service';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const { username, pin } = await request.json();
 
-    // Get clinics from database to get actual UUIDs
-    const clinics = await supabaseService.getClinics();
-    const curaflowClinic = clinics.find(c => c.name === 'CuraFlow Central Hospital');
-    const sunriseClinic = clinics.find(c => c.name === 'Sunrise Medical Clinic');
-
-    // Ensure we have valid clinic IDs
-    if (!curaflowClinic || !sunriseClinic) {
-      console.error('Clinic lookup failed:', { curaflowClinic, sunriseClinic });
+    // Validate input
+    if (!username || !pin) {
       return NextResponse.json(
-        { success: false, message: 'Clinic configuration error' },
+        { error: 'Username and PIN are required' },
+        { status: 400 }
+      );
+    }
+
+    // Authenticate clinic using database function
+    const { data: authResult, error: authError } = await supabaseService.supabase
+      .rpc('authenticate_clinic', { 
+        p_username: username, 
+        p_pin: pin 
+      });
+
+    if (authError) {
+      console.error('Authentication error:', authError);
+      return NextResponse.json(
+        { error: 'Authentication service error' },
         { status: 500 }
       );
     }
 
-    // For now, keep the mock authentication for demo purposes
-    // In production, you would use Supabase Auth with proper user management
-    if (username === 'admin' && pin === '1234') {
-      // On success, return user, token, and tenant information.
-      return NextResponse.json({
-        success: true,
-        user: { name: 'Admin User', username: 'admin', role: 'admin' },
-        token: 'mock-jwt-token-for-admin-user',
-        clinic: {
-          id: curaflowClinic.id,
-          name: 'CuraFlow Central Hospital',
-        }
-      });
-    } else if (username === 'sunrise-admin' && pin === '5678') {
-        // Second tenant for testing
-        return NextResponse.json({
-            success: true,
-            user: { name: 'Sunrise Admin', username: 'sunrise-admin', role: 'admin' },
-            token: 'mock-jwt-token-for-sunrise-admin',
-            clinic: {
-                id: sunriseClinic.id,
-                name: 'Sunrise Medical Clinic',
-            }
-        });
-    }
-    else {
-      // On failure, return an unauthorized error.
+    // Check authentication result
+    if (!authResult || authResult.length === 0 || !authResult[0].is_authenticated) {
       return NextResponse.json(
-        { success: false, message: 'Invalid username or PIN' },
+        { error: 'Invalid username or PIN' },
         { status: 401 }
       );
     }
+
+    const clinic = authResult[0];
+
+    // On success, return user, token, and tenant information
+    return NextResponse.json({
+      success: true,
+      user: { 
+        name: clinic.admin_name, 
+        username: username, 
+        role: 'admin' 
+      },
+      token: `mock-jwt-token-for-${clinic.clinic_id}`,
+      clinic: {
+        id: clinic.clinic_id,
+        name: clinic.clinic_name,
+      }
+    });
+
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json(
-      { success: false, message: 'An unexpected error occurred.' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }

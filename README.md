@@ -1,195 +1,231 @@
-# CuraFlow - Hospital Management System
+# 🏥 CuraFlow Hospital Management System
 
-A comprehensive hospital and clinic management system built with Next.js, Supabase, and AI integration.
-
-## 🚀 Live Demo
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yourusername/curaflow)
+A comprehensive, multi-tenant hospital management system built with Next.js 15, React 18, TypeScript, and Supabase.
 
 ## ✨ Features
 
-- **Patient Management** - Complete patient database with family relationships
-- **Appointment Scheduling** - Token-based appointment system
-- **Real-time Queue Management** - Live queue with call/skip functionality
-- **Doctor Management** - Doctor profiles, schedules, and availability
-- **Live Display** - Real-time waiting room display
-- **AI Integration** - Intelligent queue prioritization and reasoning
-- **Multi-tenant Support** - Support for multiple clinics
-- **Print Integration** - Token printing with Bluetooth support
-- **WhatsApp Integration** - Appointment confirmations
+### 🏢 **Multi-Tenant Architecture**
+- **Unlimited clinics** supported
+- **Complete data isolation** between clinics
+- **Dynamic authentication** system
+- **Scalable infrastructure**
+
+### 👨‍⚕️ **Core Functionality**
+- **Doctor Management** - Add, edit, and manage doctors
+- **Patient Database** - Comprehensive patient records
+- **Appointment Scheduling** - Token-based system
+- **Queue Management** - Real-time queue with AI prioritization
+- **Session Management** - Morning, Afternoon, Evening sessions
+- **Visit Tracking** - Complete visit lifecycle management
+
+### 🤖 **AI Integration**
+- **Intelligent Queue Prioritization** - AI-powered patient prioritization
+- **Queue Extension Reasoning** - AI suggestions for visit extensions
+- **Google Gemini Integration** - Advanced AI capabilities
+
+### 🔐 **Superadmin System**
+- **Complete clinic management** - Create, edit, deactivate clinics
+- **System-wide statistics** - Monitor all clinics
+- **Secure authentication** - Token-based sessions
+- **Audit trail** - Complete operation logging
+
+### 📱 **Modern UI/UX**
+- **Responsive design** - Works on all devices
+- **Real-time updates** - Live queue and status updates
+- **Cross-page synchronization** - Updates across browser tabs
+- **Beautiful interface** - Modern, professional design
 
 ## 🛠️ Tech Stack
 
 - **Frontend**: Next.js 15, React 18, TypeScript
 - **Backend**: Supabase (PostgreSQL, Auth, Real-time)
-- **UI**: Radix UI, Tailwind CSS
 - **AI**: Google Gemini via Genkit
-- **Deployment**: Vercel
+- **UI**: Radix UI, Tailwind CSS
+- **Authentication**: Custom token-based system
+- **Database**: PostgreSQL with Row Level Security
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-
 - Node.js 18+ 
 - Supabase account
-- Vercel account (for deployment)
+- Git
 
-### 1. Clone the Repository
+### Installation
 
-```bash
-git clone https://github.com/yourusername/curaflow.git
-cd curaflow
-```
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/curaflow.git
+   cd curaflow
+   ```
 
-### 2. Install Dependencies
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-```bash
-npm install
-```
+3. **Set up environment variables**
+   ```bash
+   cp .env.example .env.local
+   # Edit .env.local with your Supabase credentials
+   ```
 
-### 3. Set Up Supabase
+4. **Set up database**
+   - Go to your Supabase Dashboard
+   - Open SQL Editor
+   - Run `FINAL-COMPLETE-SQL.sql`
+   - Run `SUPERADMIN-SYSTEM.sql`
 
-1. Create a new Supabase project
-2. Run the SQL schema from `supabase-schema-fixed-uuid.sql` in your Supabase SQL Editor
-3. Get your Supabase URL and API keys
+5. **Start development server**
+   ```bash
+   npm run dev
+   ```
 
-### 4. Environment Variables
+6. **Access the application**
+   - Main app: `http://localhost:3000`
+   - Superadmin: `http://localhost:3000/superadmin/dashboard`
 
-Create `.env.local`:
+## 🔐 Security
 
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-```
+### Default Credentials
+- **Superadmin**: `superadmin` / `superadmin123` (change immediately!)
+- **Demo Clinic 1**: `admin` / `1234`
+- **Demo Clinic 2**: `sunrise-admin` / `5678`
 
-### 5. Run Development Server
+### Security Features
+- ✅ **No hardcoded credentials** in code
+- ✅ **Environment variables** for all configuration
+- ✅ **Token-based authentication** with expiry
+- ✅ **Row Level Security** for data isolation
+- ✅ **Input validation** on all forms
+- ✅ **Audit trail** for all operations
 
-```bash
-npm run dev
-```
+## 📊 System Architecture
 
-Visit `http://localhost:9002`
+### Database Schema
+- **clinics** - Multi-tenant clinic management
+- **doctors** - Doctor profiles and schedules
+- **patients** - Patient records and history
+- **visits** - Appointment and visit tracking
+- **queue** - Real-time queue management
+- **sessions** - Time-based session management
+- **superadmins** - System administration
 
-## 🌐 Deploy to Vercel
+### API Endpoints
+- **Authentication**: `/api/auth/login`
+- **Clinic Management**: `/api/superadmin/clinics`
+- **Doctor Management**: `/api/doctors`
+- **Patient Management**: `/api/patients`
+- **Queue Management**: `/api/queue`
+- **Visit Tracking**: `/api/visits`
 
-### Option 1: Deploy Button (Recommended)
+## 🎯 Usage
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yourusername/curaflow)
+### For Superadmins
+1. **Login** to superadmin dashboard
+2. **Create clinics** with admin credentials
+3. **Monitor system** performance and usage
+4. **Manage clinics** (edit, deactivate)
 
-### Option 2: Manual Deployment
-
-1. Push to GitHub:
-```bash
-git remote add origin https://github.com/yourusername/curaflow.git
-git push -u origin main
-```
-
-2. Connect to Vercel:
-   - Go to [vercel.com](https://vercel.com)
-   - Import your GitHub repository
-   - Add environment variables in Vercel dashboard
-   - Deploy!
-
-## 🔐 Default Login Credentials
-
-- **CuraFlow Central Hospital**: `admin` / `1234`
-- **Sunrise Medical Clinic**: `sunrise-admin` / `5678`
-
-## 📊 Database Schema
-
-The system includes the following main tables:
-- `clinics` - Hospital/clinic information
-- `doctors` - Doctor profiles and schedules
-- `patients` - Patient records
-- `visits` - Appointment records
-- `queue` - Real-time queue management
-- `sessions` - Time-based sessions
-- `departments` - Clinic departments
-- `ad_resources` - Display content
-
-## 🤖 AI Features
-
-- **Intelligent Queue Prioritization** - AI analyzes symptoms to prioritize patients
-- **Queue Extension Reasoning** - AI helps receptionists choose appropriate responses
-- **Smart Queue Management** - Automated queue optimization
+### For Clinic Admins
+1. **Login** with clinic credentials
+2. **Manage doctors** and schedules
+3. **Handle patient** registrations
+4. **Monitor queue** and visits
+5. **Generate reports** and analytics
 
 ## 🔧 Configuration
 
-### Supabase Setup
-
-1. Run the SQL schema in your Supabase dashboard
-2. Enable Row Level Security (RLS)
-3. Configure authentication policies
-
 ### Environment Variables
+```bash
+# Required
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
-| Variable | Description |
-|----------|-------------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anonymous key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key |
+# Optional
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NODE_ENV=development
+```
 
-## 📱 Features Overview
+### Database Functions
+- `authenticate_clinic()` - Dynamic clinic authentication
+- `create_clinic_with_admin()` - New clinic creation
+- `get_clinic_stats()` - Usage statistics
+- `get_full_queue()` - Queue management
+- `end_session_with_tracking()` - Session analytics
 
-### Dashboard
-- Real-time statistics
-- Quick actions
-- Recent activity
+## 📈 Monitoring
 
-### Patient Management
-- Patient registration
-- Family relationships
-- Visit history
-- Search functionality
+### System Statistics
+- **Total clinics** and active/inactive status
+- **Total doctors** across all clinics
+- **Total patients** and visit counts
+- **Real-time queue** monitoring
+- **Performance metrics** and usage
 
-### Queue Management
-- Real-time queue display
-- Call/skip patients
-- Priority management
-- AI-powered prioritization
-
-### Doctor Management
-- Doctor profiles
-- Schedule management
-- Availability status
-- Specialty management
-
-### Live Display
-- Waiting room display
-- Real-time updates
-- Advertisement support
-- Multi-screen support
+### Audit Trail
+- **All superadmin actions** logged
+- **Clinic creation** and modifications tracked
+- **Session management** with timestamps
+- **Security events** monitored
 
 ## 🚀 Deployment
 
-### Vercel (Recommended)
+### Production Deployment
+1. **Set up production database** (Supabase)
+2. **Configure environment variables**
+3. **Deploy to Vercel/Netlify/Docker**
+4. **Set up monitoring** and backups
+5. **Configure domain** and SSL
 
-1. Connect your GitHub repository
-2. Add environment variables
-3. Deploy automatically on push
-
-### Other Platforms
-
-- **Netlify**: Compatible with Next.js
-- **Railway**: Full-stack deployment
-- **DigitalOcean**: VPS deployment
-
-## 📄 License
-
-MIT License - see LICENSE file for details
+### Security Checklist
+- [ ] Change default superadmin password
+- [ ] Use strong passwords for all accounts
+- [ ] Enable HTTPS in production
+- [ ] Set up regular backups
+- [ ] Monitor access logs
+- [ ] Update dependencies regularly
 
 ## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Submit a pull request
+4. Test thoroughly
+5. Submit a pull request
 
-## 📞 Support
+### Development Guidelines
+- Follow TypeScript best practices
+- Write comprehensive tests
+- Document new features
+- Follow security guidelines
+- Use conventional commits
 
-For support, email support@curaflow.com or create an issue on GitHub.
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Support
+
+### Documentation
+- [Setup Guide](SECURE-DEPLOYMENT-GUIDE.md)
+- [Security Guide](GITHUB-SECURITY-GUIDE.md)
+- [API Documentation](docs/api.md)
+
+### Issues
+- Report bugs via GitHub Issues
+- Request features via GitHub Discussions
+- Security issues: contact directly
+
+## 🎉 Acknowledgments
+
+- Built with Next.js and React
+- Powered by Supabase
+- AI capabilities via Google Gemini
+- UI components from Radix UI
+- Styled with Tailwind CSS
 
 ---
 
-**Built with ❤️ for healthcare professionals**
+**CuraFlow - Modern Hospital Management Made Simple** 🏥✨

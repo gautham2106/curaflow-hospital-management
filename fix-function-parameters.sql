@@ -29,3 +29,4 @@ $$;
 
 -- Test the function
 SELECT 'Function fixed successfully' as status;
+

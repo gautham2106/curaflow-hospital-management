@@ -36,9 +36,10 @@ import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useFetch } from '@/hooks/use-api';
+import { useCrossPageSync } from '@/hooks/use-cross-page-sync';
 
 
-type SortKey = keyof VisitRecord | '';
+type SortKey = keyof VisitRecord | 'patient_name' | 'doctor_name' | '';
 type SortDirection = 'asc' | 'desc';
 
 const getStatusBadge = (status: VisitRecord['status']) => {
@@ -57,11 +58,11 @@ const getStatusBadge = (status: VisitRecord['status']) => {
 };
 
 function calculateWaitTime(records: VisitRecord[]) {
-  const completedVisits = records.filter(r => r.status === 'Completed' && r.calledTime && r.checkInTime);
+  const completedVisits = records.filter(r => r.status === 'Completed' && r.called_time && r.check_in_time);
   if (completedVisits.length === 0) return '0m';
 
   const totalWaitMinutes = completedVisits.reduce((acc, visit) => {
-    const wait = (new Date(visit.calledTime!).getTime() - new Date(visit.checkInTime).getTime()) / (1000 * 60);
+    const wait = (new Date(visit.called_time!).getTime() - new Date(visit.check_in_time!).getTime()) / (1000 * 60);
     return acc + wait;
   }, 0);
 
@@ -86,7 +87,7 @@ export default function VisitRegisterPage() {
   const [filterSession, setFilterSession] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
 
-  const [sortKey, setSortKey] = useState<SortKey>('checkInTime');
+  const [sortKey, setSortKey] = useState<SortKey>('check_in_time');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
@@ -208,12 +209,52 @@ export default function VisitRegisterPage() {
     return () => clearInterval(interval);
   }, [selectedDate, get, clinicId]);
 
+  // Use cross-page sync for immediate updates
+  useCrossPageSync({
+    onQueueUpdate: async () => {
+      if (!selectedDate || !clinicId) return;
+
+      try {
+        const dateString = format(selectedDate, 'yyyy-MM-dd');
+        const response = await get('/api/visits', { date: dateString });
+        if (!response) return;
+
+        const data = await response.json();
+        setDailyRecords(data.map((r: any) => ({ 
+          ...r, 
+          date: new Date(r.date), 
+          checkInTime: new Date(r.check_in_time), 
+          calledTime: r.called_time ? new Date(r.called_time) : undefined, 
+          completedTime: r.completed_time ? new Date(r.completed_time) : undefined,
+          // Flatten nested objects
+          patientName: r.patients?.name || 'Unknown',
+          phone: r.patients?.phone || '',
+          doctorName: r.doctors?.name || 'Unknown',
+          tokenNumber: r.token_number,
+          // Enhanced tracking fields
+          waitingTimeMinutes: r.waiting_time_minutes || 0,
+          consultationTimeMinutes: r.consultation_time_minutes || 0,
+          totalTimeMinutes: r.total_time_minutes || 0,
+          wasSkipped: r.was_skipped || false,
+          skipReason: r.skip_reason || '',
+          wasOutOfTurn: r.was_out_of_turn || false,
+          outOfTurnReason: r.out_of_turn_reason || '',
+          sessionEndTime: r.session_end_time ? new Date(r.session_end_time) : undefined,
+          visitNotes: r.visit_notes || '',
+          patientSatisfactionRating: r.patient_satisfaction_rating || null
+        })));
+      } catch (e) {
+        console.error('Failed to refresh visit records on update:', e);
+      }
+    }
+  });
+
   const filteredAndSortedRecords = useMemo(() => {
     let records = [...dailyRecords];
 
     // Filtering
     if (filterDoctor !== 'all') {
-      records = records.filter((r) => r.doctorId === filterDoctor);
+      records = records.filter((r) => r.doctor_id === filterDoctor);
     }
     if (filterSession !== 'all') {
       records = records.filter((r) => r.session === filterSession);
@@ -226,9 +267,9 @@ export default function VisitRegisterPage() {
     if (debouncedSearchQuery) {
       records = records.filter(
         (r) =>
-          r.patientName.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
-          String(r.tokenNumber).toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
-          r.phone.replace(/\s/g, '').includes(debouncedSearchQuery.replace(/\s/g, ''))
+          (r as any).patient_name?.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+          String(r.token_number).toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+          (r as any).patient_phone?.replace(/\s/g, '').includes(debouncedSearchQuery.replace(/\s/g, ''))
       );
     }
 
@@ -237,8 +278,8 @@ export default function VisitRegisterPage() {
       records.sort((a, b) => {
         const aValue = a[sortKey as keyof VisitRecord];
         const bValue = b[sortKey as keyof VisitRecord];
-        if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-        if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+        if (aValue && bValue && aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+        if (aValue && bValue && aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
         return 0;
       });
     }
@@ -254,10 +295,10 @@ export default function VisitRegisterPage() {
     if (!selectedDate) return;
     const doc = new jsPDF();
     const tableData = filteredAndSortedRecords.map(record => [
-        record.tokenNumber,
-        format(record.checkInTime, 'h:mm a'),
-        record.patientName,
-        record.doctorName,
+        record.token_number,
+        record.check_in_time ? format(record.check_in_time, 'h:mm a') : 'N/A',
+        (record as any).patient_name || 'N/A',
+        (record as any).doctor_name || 'N/A',
         record.session,
         record.status,
     ]);
@@ -311,13 +352,13 @@ export default function VisitRegisterPage() {
             onClick={() => setExpandedRow(expandedRow === record.id ? null : record.id)}
             className="cursor-pointer hover:bg-muted/50"
         >
-            <TableCell className="font-mono">{record.tokenNumber}</TableCell>
-            <TableCell>{format(record.checkInTime, 'h:mm a')}</TableCell>
+            <TableCell className="font-mono">{record.token_number}</TableCell>
+            <TableCell>{record.check_in_time ? format(record.check_in_time, 'h:mm a') : 'N/A'}</TableCell>
             <TableCell>
-                <div className="font-medium">{record.patientName}</div>
-                <div className="text-xs text-muted-foreground">{record.phone}</div>
+                <div className="font-medium">{(record as any).patient_name || 'N/A'}</div>
+                <div className="text-xs text-muted-foreground">{(record as any).patient_phone || 'N/A'}</div>
             </TableCell>
-            <TableCell>{record.doctorName}</TableCell>
+            <TableCell>{(record as any).doctor_name || 'N/A'}</TableCell>
             <TableCell>{record.session}</TableCell>
             <TableCell>{getStatusBadge(record.status)}</TableCell>
         </TableRow>
@@ -327,16 +368,16 @@ export default function VisitRegisterPage() {
                     <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-4 text-sm">
                         <div className="space-y-1">
                            <h4 className="font-semibold mb-2">Visit Details</h4>
-                            {record.calledTime ? <p><strong>Called:</strong> {format(record.calledTime, 'h:mm:ss a')}</p> : null}
-                           {record.completedTime ? <p><strong>Completed:</strong> {format(record.completedTime, 'h:mm:ss a')}</p> : null}
-                           {record.completedTime && record.calledTime ? <p><strong>Consultation:</strong> {`${Math.floor((record.completedTime.getTime() - record.calledTime.getTime()) / 60000)} mins`}</p> : null}
+                            {record.called_time ? <p><strong>Called:</strong> {format(record.called_time, 'h:mm:ss a')}</p> : null}
+                            {record.completed_time ? <p><strong>Completed:</strong> {format(record.completed_time, 'h:mm:ss a')}</p> : null}
+                            {record.completed_time && record.called_time ? <p><strong>Consultation:</strong> {`${Math.floor((new Date(record.completed_time).getTime() - new Date(record.called_time).getTime()) / 60000)} mins`}</p> : null}
                         </div>
-                        {record.outOfTurnReason && (
+                        {record.out_of_turn_reason && (
                              <div className="space-y-1 md:col-span-2">
                                 <h4 className="font-semibold mb-1">Priority Details</h4>
                                 <p className="text-amber-700 bg-amber-50 p-2 rounded-md border border-amber-200 flex items-start gap-2">
                                   <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-                                  <span><strong>Reason:</strong> {record.outOfTurnReason}</span>
+                                  <span><strong>Reason:</strong> {record.out_of_turn_reason}</span>
                                 </p>
                              </div>
                         )}
@@ -463,10 +504,10 @@ export default function VisitRegisterPage() {
                   <Table>
                       <TableHeader>
                           <TableRow>
-                              <TableHead onClick={() => handleSort('tokenNumber')} className="w-[120px] cursor-pointer">Token</TableHead>
-                              <TableHead onClick={() => handleSort('checkInTime')} className="w-[120px] cursor-pointer">Time</TableHead>
-                              <TableHead onClick={() => handleSort('patientName')} className="cursor-pointer">Patient</TableHead>
-                              <TableHead onClick={() => handleSort('doctorName')} className="cursor-pointer">Doctor</TableHead>
+                              <TableHead onClick={() => handleSort('token_number')} className="w-[120px] cursor-pointer">Token</TableHead>
+                              <TableHead onClick={() => handleSort('check_in_time')} className="w-[120px] cursor-pointer">Time</TableHead>
+                              <TableHead onClick={() => handleSort('patient_name')} className="cursor-pointer">Patient</TableHead>
+                              <TableHead onClick={() => handleSort('doctor_name')} className="cursor-pointer">Doctor</TableHead>
                               <TableHead onClick={() => handleSort('session')} className="cursor-pointer">Session</TableHead>
                               <TableHead onClick={() => handleSort('status')} className="cursor-pointer">Status</TableHead>
                           </TableRow>
@@ -489,27 +530,27 @@ export default function VisitRegisterPage() {
                                   <AccordionTrigger className="p-4 text-left hover:no-underline">
                                       <div className="flex-1 flex justify-between items-start">
                                           <div>
-                                              <p className="font-bold">{record.patientName}</p>
-                                              <p className="text-sm text-muted-foreground">{record.doctorName}</p>
+        <p className="font-bold">{(record as any).patient_name || 'N/A'}</p>
+        <p className="text-sm text-muted-foreground">{(record as any).doctor_name || 'N/A'}</p>
                                               {getStatusBadge(record.status)}
                                           </div>
                                           <div className="text-right">
-                                              <p className="font-mono text-lg font-semibold text-primary">#{record.tokenNumber}</p>
-                                              <p className="text-xs text-muted-foreground">{format(record.checkInTime, 'h:mm a')}</p>
+                                              <p className="font-mono text-lg font-semibold text-primary">#{record.token_number}</p>
+                                              <p className="text-xs text-muted-foreground">{record.check_in_time ? format(record.check_in_time, 'h:mm a') : 'N/A'}</p>
                                           </div>
                                       </div>
                                   </AccordionTrigger>
                                   <AccordionContent className="px-4">
                                       <div className="space-y-3 text-sm text-muted-foreground border-t pt-4">
-                                        <p><strong>Phone:</strong> {record.phone}</p>
+                                        <p><strong>Phone:</strong> {(record as any).patient_phone || 'N/A'}</p>
                                         <p><strong>Session:</strong> {record.session}</p>
                                         <div className="space-y-1 border-t pt-3 mt-3">
-                                            {record.calledTime ? <p><strong>Called:</strong> {format(record.calledTime, 'h:mm:ss a')}</p> : null}
-                                            {record.completedTime ? <p><strong>Completed:</strong> {format(record.completedTime, 'h:mm:ss a')}</p> : null}
-                                            {record.completedTime && record.calledTime ? <p><strong>Consultation:</strong> {`${Math.floor((record.completedTime.getTime() - record.calledTime.getTime()) / 60000)} mins`}</p> : null}
+                            {record.called_time ? <p><strong>Called:</strong> {format(record.called_time, 'h:mm:ss a')}</p> : null}
+                            {record.completed_time ? <p><strong>Completed:</strong> {format(record.completed_time, 'h:mm:ss a')}</p> : null}
+                            {record.completed_time && record.called_time ? <p><strong>Consultation:</strong> {`${Math.floor((new Date(record.completed_time).getTime() - new Date(record.called_time).getTime()) / 60000)} mins`}</p> : null}
                                         </div>
-                                        {record.outOfTurnReason && (
-                                          <p className="pt-1 text-amber-700"><strong>Priority Reason:</strong> {record.outOfTurnReason}</p>
+                                        {record.out_of_turn_reason && (
+                                          <p className="pt-1 text-amber-700"><strong>Priority Reason:</strong> {record.out_of_turn_reason}</p>
                                         )}
                                       </div>
                                   </AccordionContent>

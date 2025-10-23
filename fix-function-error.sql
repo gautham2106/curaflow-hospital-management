@@ -5,3 +5,4 @@
 DROP FUNCTION IF EXISTS get_full_queue(UUID);
 
 -- Now you can run the main supabase-schema-fixed.sql file
+

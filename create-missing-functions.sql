@@ -49,3 +49,4 @@ $$;
 
 -- Test the functions
 SELECT 'Functions created successfully' as status;
+

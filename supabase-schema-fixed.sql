@@ -280,3 +280,4 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Run the seed data function
 SELECT seed_data();
+

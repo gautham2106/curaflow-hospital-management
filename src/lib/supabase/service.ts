@@ -430,14 +430,20 @@ export class SupabaseService {
     
     // Update visit record with call details
     if (data.visits) {
+      const updateData: any = { 
+        status: 'In-consultation',
+        called_time: new Date().toISOString()
+      };
+      
+      // Only add out-of-turn fields if reason is provided
+      if (outOfTurnReason) {
+        updateData.was_out_of_turn = true;
+        updateData.out_of_turn_reason = outOfTurnReason;
+      }
+      
       const { error: visitError } = await this.serviceSupabase
         .from('visits')
-        .update({ 
-          status: 'In-consultation',
-          called_time: new Date().toISOString(),
-          was_out_of_turn: !!outOfTurnReason,
-          out_of_turn_reason: outOfTurnReason || null
-        })
+        .update(updateData)
         .eq('id', data.visits.id);
       
       if (visitError) throw visitError;
@@ -467,13 +473,19 @@ export class SupabaseService {
     
     // Then update the visit record with skip details
     if (queueData.visits) {
+      const updateData: any = { 
+        status: 'Cancelled' // Use 'Cancelled' instead of 'Skipped' for visits table
+      };
+      
+      // Only add skip fields if reason is provided
+      if (skipReason) {
+        updateData.was_skipped = true;
+        updateData.skip_reason = skipReason;
+      }
+      
       const { error: visitError } = await this.serviceSupabase
         .from('visits')
-        .update({ 
-          status: 'Cancelled', // Use 'Cancelled' instead of 'Skipped' for visits table
-          was_skipped: true,
-          skip_reason: skipReason || 'No reason provided'
-        })
+        .update(updateData)
         .eq('id', queueData.visits.id);
       
       if (visitError) throw visitError;

@@ -58,3 +58,4 @@ testConnection().then(success => {
     console.log('\n❌ Setup test failed - check your Supabase configuration');
   }
 }).catch(console.error);
+

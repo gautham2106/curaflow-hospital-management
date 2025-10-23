@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
         const sessions = await supabaseService.getSessions(clinicId);
         
         // Transform database format to frontend format
-        const transformedSessions = sessions.map(session => ({
+        const transformedSessions = sessions.map((session: any) => ({
             name: session.name,
             start: session.start_time,
             end: session.end_time

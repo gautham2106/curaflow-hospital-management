@@ -12,6 +12,8 @@ import { cn } from "@/lib/utils";
 import { Play, SkipForward, RotateCcw, UserCheck, Power, Loader2 } from "lucide-react";
 import { ReasonDialog } from "@/components/queue/reason-dialog";
 import { useFetch } from "@/hooks/use-api";
+import { checkSessionTransition, shouldClearPreviousSessionData, formatTimeUntilNextSession } from "@/lib/session-transition";
+import { useCrossPageSync } from "@/hooks/use-cross-page-sync";
 
 const getStatusBadge = (status: QueueItem['status']) => {
     switch (status) {
@@ -94,22 +96,7 @@ function QueueCard({ item, onCall, onSkip, onRejoin }: { item: QueueItem; onCall
     );
 }
 
-function getCurrentSession(configs: SessionConfig[]): SessionConfig | null {
-    const now = new Date();
-    const currentTime = now.getHours() * 100 + now.getMinutes();
-
-    for (const session of configs) {
-        const [startHour, startMinute] = session.start.split(':').map(Number);
-        const [endHour, endMinute] = session.end.split(':').map(Number);
-        const startTime = startHour * 100 + startMinute;
-        const endTime = endHour * 100 + endMinute;
-
-        if (currentTime >= startTime && currentTime < endTime) {
-            return session;
-        }
-    }
-    return null;
-}
+// Removed getCurrentSession function - now using the one from session-transition.ts
 
 
 export default function LiveQueuePage() {
@@ -120,6 +107,8 @@ export default function LiveQueuePage() {
     const { toast } = useToast();
     const [selectedDoctorId, setSelectedDoctorId] = useState<string | undefined>();
     const [currentSession, setCurrentSession] = useState<SessionConfig | null>(null);
+    const [previousSession, setPreviousSession] = useState<SessionConfig | null>(null);
+    const [sessionTransitionInfo, setSessionTransitionInfo] = useState<any>(null);
 
     const [isReasonDialogOpen, setReasonDialogOpen] = useState(false);
     const [patientToCall, setPatientToCall] = useState<string | null>(null);
@@ -130,6 +119,30 @@ export default function LiveQueuePage() {
     useEffect(() => {
         setClinicId(sessionStorage.getItem('clinicId'));
     }, []);
+
+    // Use cross-page sync hook
+    const { triggerUpdate } = useCrossPageSync({
+        onQueueUpdate: async () => {
+            // Refresh queue data when other pages update it
+            try {
+                const queueRes = await get('/api/queue');
+                if (queueRes && queueRes.ok) {
+                    const queueData = await queueRes.json();
+                    setQueue(queueData.map((q: any) => ({
+                        ...q, 
+                        checkInTime: new Date(q.check_in_time),
+                        patientName: q.patient_name,
+                        doctorName: q.doctor_name,
+                        tokenNumber: q.token_number,
+                        session: q.session,
+                        appointmentId: q.appointment_id
+                    })));
+                }
+            } catch (error) {
+                console.error('Failed to refresh queue on cross-page update:', error);
+            }
+        }
+    });
 
 
     useEffect(() => {
@@ -162,7 +175,23 @@ export default function LiveQueuePage() {
                 })));
                 setDoctors(doctorsData);
                 setSessionConfigs(sessionsData);
-                setCurrentSession(getCurrentSession(sessionsData));
+                
+                // Check session transition
+                const transitionInfo = checkSessionTransition(sessionsData, previousSession);
+                setCurrentSession(transitionInfo.currentSession);
+                setSessionTransitionInfo(transitionInfo);
+                
+                // Clear previous session data if transitioning
+                if (shouldClearPreviousSessionData(sessionsData, previousSession)) {
+                    setQueue([]); // Clear queue data
+                    toast({
+                        title: "Session Transition",
+                        description: `Transitioned from ${previousSession?.name} to ${transitionInfo.currentSession?.name || 'No active session'}`,
+                        duration: 5000
+                    });
+                }
+                
+                setPreviousSession(transitionInfo.currentSession);
                 
                 if (doctorsData.length > 0) {
                     setSelectedDoctorId(doctorsData[0].id)
@@ -177,6 +206,36 @@ export default function LiveQueuePage() {
 
         fetchData();
     }, [toast, get, clinicId]);
+
+    // Monitor session transitions every minute
+    useEffect(() => {
+        if (!sessionConfigs.length) return;
+
+        const checkSessionTransitionInterval = setInterval(() => {
+            const transitionInfo = checkSessionTransition(sessionConfigs, previousSession);
+            
+            if (transitionInfo.isTransitioning) {
+                setCurrentSession(transitionInfo.currentSession);
+                setSessionTransitionInfo(transitionInfo);
+                
+                // Clear queue data on transition
+                setQueue([]);
+                
+                toast({
+                    title: "Session Transition",
+                    description: `Transitioned from ${previousSession?.name} to ${transitionInfo.currentSession?.name || 'No active session'}`,
+                    duration: 5000
+                });
+                
+                setPreviousSession(transitionInfo.currentSession);
+            } else if (transitionInfo.currentSession?.name !== currentSession?.name) {
+                setCurrentSession(transitionInfo.currentSession);
+                setSessionTransitionInfo(transitionInfo);
+            }
+        }, 60000); // Check every minute
+
+        return () => clearInterval(checkSessionTransitionInterval);
+    }, [sessionConfigs, previousSession, currentSession, toast]);
     
     const selectedDoctor = doctors.find(d => d.id === selectedDoctorId);
 
@@ -230,6 +289,10 @@ export default function LiveQueuePage() {
                 session: q.session,
                 appointmentId: q.appointment_id
             })));
+            
+            // Trigger cross-page updates
+            triggerUpdate('queue');
+            
             toast({
                 title: "Patient Called",
                 description: `${queueItem.patientName} (Token: ${queueItem.tokenNumber}) is now being served.`,
@@ -279,6 +342,10 @@ export default function LiveQueuePage() {
                 session: q.session,
                 appointmentId: q.appointment_id
             })));
+            
+            // Trigger cross-page updates
+            triggerUpdate('queue');
+            
             toast({
                 title: 'Patient Skipped',
                 description: `${queueItem.patientName} has been moved to the skipped list.`,
@@ -307,6 +374,10 @@ export default function LiveQueuePage() {
                 session: q.session,
                 appointmentId: q.appointment_id
             })));
+            
+            // Trigger cross-page updates
+            triggerUpdate('queue');
+            
             toast({
                 title: 'Patient Rejoined',
                 description: `${queueItem.patientName} has been added to the end of the waiting list.`,
@@ -334,6 +405,9 @@ export default function LiveQueuePage() {
                 session: q.session,
                 appointmentId: q.appointment_id
             })));
+
+            // Trigger cross-page updates
+            triggerUpdate('queue');
 
             // Display session statistics
             const stats = result.sessionStats;
@@ -381,6 +455,11 @@ Session Summary for ${selectedDoctor?.name}:
                             <CardTitle>Queue Register</CardTitle>
                             <CardDescription>
                                 {selectedDoctor?.name} - {currentSession ? `${currentSession.name} Session` : 'No Active Session'}
+                                {sessionTransitionInfo?.timeUntilNextSession && (
+                                    <span className="ml-2 text-xs text-muted-foreground">
+                                        ({formatTimeUntilNextSession(sessionTransitionInfo.timeUntilNextSession)})
+                                    </span>
+                                )}
                             </CardDescription>
                         </div>
                         <div className="flex flex-col sm:flex-row gap-2">

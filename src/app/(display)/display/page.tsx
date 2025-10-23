@@ -13,6 +13,7 @@ import Image from 'next/image';
 import useEmblaCarousel from 'embla-carousel-react'
 import { useToast } from '@/hooks/use-toast';
 import { useFetch } from '@/hooks/use-api';
+import { useCrossPageSync } from '@/hooks/use-cross-page-sync';
 
 // --- Ad Carousel Component ---
 function AdCarousel({ resources, orientation }: { resources: AdResource[], orientation: 'vertical' | 'horizontal' }) {
@@ -402,6 +403,26 @@ function DisplayView() {
     const interval = setInterval(refreshQueue, 30000); // Refresh every 30 seconds
     return () => clearInterval(interval);
   }, [clinicId, isQrMode, get]);
+
+  // Use cross-page sync for immediate updates
+  useCrossPageSync({
+    onQueueUpdate: async () => {
+      if (!clinicId) return;
+      
+      try {
+        const queueRes = isQrMode ? 
+          await fetch('/api/queue', { headers: { 'x-clinic-id': clinicId } }) : 
+          await get('/api/queue');
+        
+        if (queueRes && queueRes.ok) {
+          const queueData = await queueRes.json();
+          setQueue(queueData);
+        }
+      } catch (error) {
+        console.error('Failed to refresh queue data on update:', error);
+      }
+    }
+  });
 
   useEffect(() => {
     if (doctorsForTv.length > 1) {

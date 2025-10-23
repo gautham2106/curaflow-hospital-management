@@ -20,17 +20,17 @@ const createVisitRecord = (day: Date, doctor: Doctor, session: "Morning" | "Afte
 
     return {
         id: `vr_${day.getTime()}_${doctor.id}_${token}`,
-        tokenNumber: token,
-        patientId: patient.id,
-        patientName: patient.name,
-        phone: patient.phone.replace(/(\d{5})(\d{5})/, '$1 $2'),
-        doctorId: doctor.id,
-        doctorName: doctor.name,
+        token_number: token,
+        patient_id: patient.id,
+        // patientName: patient.name, // This field doesn't exist in the database schema
+        // phone: patient.phone.replace(/(\d{5})(\d{5})/, '$1 $2'), // This field doesn't exist in the database schema
+        doctor_id: doctor.id,
+        // doctorName: doctor.name, // This field doesn't exist in the database schema
         session,
-        date: day,
-        checkInTime,
-        calledTime,
-        completedTime,
+        date: day.toISOString().split('T')[0],
+        check_in_time: checkInTime.toISOString(),
+        called_time: calledTime?.toISOString() || null,
+        completed_time: completedTime?.toISOString() || null,
         status,
         fee: [500, 600, 750, 1000][Math.floor(Math.random() * 4)],
         paymentMethod: ["Cash", "UPI", "Card"][Math.floor(Math.random() * 3)] as "Cash" | "UPI" | "Card",
@@ -53,8 +53,9 @@ const generateMockDataForClinic = (clinicId: string) => {
                 specialty: 'Cardiology',
                 phone: '9876543210',
                 status: 'Available',
-                sessions: [ { name: 'Morning', limit: 20 }, ],
-                todaysSessions: [ { name: 'Morning', limit: 20, status: 'active' }, ]
+                sessions: [ { name: 'Morning', limit: 20 } ],
+                clinic_id: clinicId,
+                created_at: new Date().toISOString()
             },
             {
                 id: 'doc2',
@@ -63,8 +64,9 @@ const generateMockDataForClinic = (clinicId: string) => {
                 specialty: 'General Medicine',
                 phone: '9876512345',
                 status: 'Available',
-                sessions: [ { name: 'Morning', limit: 25 }, { name: 'Afternoon', limit: 15 }, ],
-                todaysSessions: [ { name: 'Morning', limit: 25, status: 'active' }, { name: 'Afternoon', limit: 15, status: 'pending' }, ]
+                sessions: [ { name: 'Morning', limit: 25 }, { name: 'Afternoon', limit: 15 } ],
+                clinic_id: clinicId,
+                created_at: new Date().toISOString()
             },
             {
                 id: 'doc3',
@@ -73,8 +75,9 @@ const generateMockDataForClinic = (clinicId: string) => {
                 specialty: 'Pediatrics',
                 phone: '9876567890',
                 status: 'On Leave',
-                sessions: [ { name: 'Morning', limit: 20 }, { name: 'Evening', limit: 15 }, ],
-                todaysSessions: [ { name: 'Morning', limit: 20, status: 'pending' }],
+                sessions: [ { name: 'Morning', limit: 20 }, { name: 'Evening', limit: 15 } ],
+                clinic_id: clinicId,
+                created_at: new Date().toISOString()
             }
         );
         patients.push(
@@ -95,8 +98,8 @@ const generateMockDataForClinic = (clinicId: string) => {
         );
     } else if (clinicId === 'sunrise-medical') {
         doctors.push(
-            { id: 'doc4', name: 'Dr. Aanya Singh', avatar: 'https://picsum.photos/seed/doc4/100/100', specialty: 'Dermatology', phone: '8887776665', status: 'Available', sessions: [ { name: 'Morning', limit: 15 }, { name: 'Afternoon', limit: 10 } ], todaysSessions: [ { name: 'Morning', limit: 15, status: 'active' }, { name: 'Afternoon', limit: 10, status: 'pending' } ] },
-            { id: 'doc5', name: 'Dr. Vikram Rao', avatar: 'https://picsum.photos/seed/doc5/100/100', specialty: 'Neurology', phone: '8887776664', status: 'Unavailable', sessions: [ { name: 'Afternoon', limit: 12 } ], todaysSessions: [ { name: 'Afternoon', limit: 12, status: 'pending' } ] }
+            { id: 'doc4', name: 'Dr. Aanya Singh', avatar: 'https://picsum.photos/seed/doc4/100/100', specialty: 'Dermatology', phone: '8887776665', status: 'Available', sessions: [ { name: 'Morning', limit: 15 }, { name: 'Afternoon', limit: 10 } ], clinic_id: clinicId, created_at: new Date().toISOString() },
+            { id: 'doc5', name: 'Dr. Vikram Rao', avatar: 'https://picsum.photos/seed/doc5/100/100', specialty: 'Neurology', phone: '8887776664', status: 'Unavailable', sessions: [ { name: 'Afternoon', limit: 12 } ], clinic_id: clinicId, created_at: new Date().toISOString() }
         );
         patients.push(
             { id: 'pat6', familyId: 'fam3', name: 'Sanjay Gupta', phone: '5554443332', age: 50, gender: 'Male', lastVisit: new Date(subDays(new Date(), 20)).toISOString(), totalVisits: 3, },

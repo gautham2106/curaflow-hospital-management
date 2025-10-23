@@ -281,48 +281,75 @@ export type Database = {
           check_in_time: string | null
           clinic_id: string
           completed_time: string | null
+          consultation_time_minutes: number | null
           date: string
           doctor_id: string
           fee: number | null
           id: string
           out_of_turn_reason: string | null
           patient_id: string
+          patient_satisfaction_rating: number | null
           payment_method: string | null
           session: string | null
+          session_end_time: string | null
+          skip_reason: string | null
           status: string
           token_number: number
+          total_time_minutes: number | null
+          visit_notes: string | null
+          waiting_time_minutes: number | null
+          was_out_of_turn: boolean | null
+          was_skipped: boolean | null
         }
         Insert: {
           called_time?: string | null
           check_in_time?: string | null
           clinic_id: string
           completed_time?: string | null
+          consultation_time_minutes?: number | null
           date: string
           doctor_id: string
           fee?: number | null
           id?: string
           out_of_turn_reason?: string | null
           patient_id: string
+          patient_satisfaction_rating?: number | null
           payment_method?: string | null
           session?: string | null
+          session_end_time?: string | null
+          skip_reason?: string | null
           status?: string
           token_number: number
+          total_time_minutes?: number | null
+          visit_notes?: string | null
+          waiting_time_minutes?: number | null
+          was_out_of_turn?: boolean | null
+          was_skipped?: boolean | null
         }
         Update: {
           called_time?: string | null
           check_in_time?: string | null
           clinic_id?: string
           completed_time?: string | null
+          consultation_time_minutes?: number | null
           date?: string
           doctor_id?: string
           fee?: number | null
           id?: string
           out_of_turn_reason?: string | null
           patient_id?: string
+          patient_satisfaction_rating?: number | null
           payment_method?: string | null
           session?: string | null
+          session_end_time?: string | null
+          skip_reason?: string | null
           status?: string
           token_number?: number
+          total_time_minutes?: number | null
+          visit_notes?: string | null
+          waiting_time_minutes?: number | null
+          was_out_of_turn?: boolean | null
+          was_skipped?: boolean | null
         }
         Relationships: [
           {
@@ -353,12 +380,44 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      authenticate_clinic: {
+        Args: {
+          p_pin: string
+          p_username: string
+        }
+        Returns: {
+          admin_name: string | null
+          clinic_id: string | null
+          clinic_name: string | null
+          is_authenticated: boolean
+        }[]
+      }
       complete_previous_consultation: {
         Args: {
           p_doctor_id: string
           p_clinic_id: string
         }
         Returns: undefined
+      }
+      create_clinic_with_admin: {
+        Args: {
+          p_address?: string | null
+          p_admin_name: string
+          p_admin_pin: string
+          p_admin_username: string
+          p_email?: string | null
+          p_max_doctors?: number
+          p_max_patients_per_day?: number
+          p_name: string
+          p_phone?: string | null
+          p_subscription_plan?: string
+        }
+        Returns: {
+          admin_username: string | null
+          clinic_id: string | null
+          clinic_name: string | null
+          success: boolean
+        }[]
       }
       create_clinic_user: {
         Args: {
@@ -370,6 +429,12 @@ export type Database = {
         }
         Returns: string
       }
+      deactivate_clinic: {
+        Args: {
+          p_clinic_id: string
+        }
+        Returns: boolean
+      }
       end_session_for_doctor: {
         Args: {
           p_clinic_id: string
@@ -377,6 +442,38 @@ export type Database = {
           p_session_name: string
         }
         Returns: undefined
+      }
+      end_session_with_tracking: {
+        Args: {
+          p_clinic_id: string
+          p_doctor_id: string
+          p_session_end_time?: string
+          p_session_name: string
+        }
+        Returns: {
+          avg_consultation_time: number | null
+          avg_waiting_time: number | null
+          completed_patients: number | null
+          no_show_patients: number | null
+          skipped_patients: number | null
+          total_patients: number | null
+          total_revenue: number | null
+          waiting_patients: number | null
+        }[]
+      }
+      get_clinic_stats: {
+        Args: {
+          p_clinic_id: string
+        }
+        Returns: {
+          active_queue_count: number | null
+          max_doctors: number | null
+          max_patients_per_day: number | null
+          subscription_plan: string | null
+          total_doctors: number | null
+          total_patients: number | null
+          total_visits_today: number | null
+        }[]
       }
       get_full_queue: {
         Args: {
@@ -392,6 +489,15 @@ export type Database = {
           priority: string
           appointment_id: string
         }[]
+      }
+      update_clinic_admin: {
+        Args: {
+          p_clinic_id: string
+          p_new_admin_name: string
+          p_new_pin: string
+          p_new_username: string
+        }
+        Returns: boolean
       }
       seed_data: {
         Args: Record<PropertyKey, never>
@@ -530,6 +636,7 @@ export type QueueItem = {
     priority: "High" | "Medium" | "Low";
     tokenNumber: number;
     appointmentId?: string;
+    session?: string;
 }
 
 export type SessionConfig = {

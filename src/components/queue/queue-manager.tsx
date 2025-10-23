@@ -125,7 +125,7 @@ export function QueueManager({ initialQueue, doctors }: { initialQueue: QueueIte
                                     {selectedDoctor.status === 'Available' ? 'ACCEPTING PATIENTS' : 'PAUSED'}
                                 </Badge>
                                 <p className="text-sm text-muted-foreground mt-2">
-                                    <span className="font-bold text-foreground">{selectedDoctor.tokensIssued || 0} / {selectedDoctor.dailyLimit || 'N/A'}</span> tokens issued. 
+                                    <span className="font-bold text-foreground">{(selectedDoctor as any).tokensIssued || 0} / {(selectedDoctor as any).dailyLimit || 'N/A'}</span> tokens issued. 
                                     <span className="font-bold text-foreground"> {waitingQueue.length}</span> waiting.
                                 </p>
                             </div>

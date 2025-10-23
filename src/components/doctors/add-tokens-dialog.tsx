@@ -56,7 +56,7 @@ export function AddTokensDialog({ isOpen, onOpenChange, doctor, onAddTokens }: A
             />
           </div>
            <div className="text-sm text-muted-foreground">
-              Current Limit: {doctor.dailyLimit || 0} tokens. After adding, the new limit will be {(doctor.dailyLimit || 0) + amount}.
+              Current Limit: {(doctor as any).dailyLimit || 0} tokens. After adding, the new limit will be {((doctor as any).dailyLimit || 0) + amount}.
             </div>
         </div>
         <DialogFooter>

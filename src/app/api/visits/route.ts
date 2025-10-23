@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
         if (patientId) {
             // Get visits for specific patient
             visits = await supabaseService.getVisits(clinicId);
-            visits = visits.filter(visit => visit.patient_id === patientId);
+            visits = visits.filter((visit: any) => visit.patient_id === patientId);
         } else if (date) {
             visits = await supabaseService.getVisits(clinicId, date);
         } else {
@@ -49,11 +49,16 @@ export async function POST(request: NextRequest) {
 
         // If cancelled or no-show, update queue status
         if (status === "Cancelled" || status === "No-show") {
-            // Find and update queue item
-            const queue = await supabaseService.getQueue(clinicId);
-            const queueItem = queue.find(q => q.appointment_id === visitId);
-            if (queueItem) {
-                await supabaseService.updateQueueStatus(queueItem.id, 'Cancelled');
+            try {
+                // Find and update queue item
+                const queue = await supabaseService.getQueue(clinicId);
+                const queueItem = queue.find((q: any) => q.appointment_id === visitId);
+                if (queueItem) {
+                    await supabaseService.updateQueueStatus(queueItem.id, 'Cancelled');
+                }
+            } catch (queueError) {
+                console.error('Error updating queue status:', queueError);
+                // Continue with visit update even if queue update fails
             }
         }
         

@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
 
         // Find the queue item by patient ID (appointment_id)
         const currentQueue = await supabaseService.getQueue(clinicId);
-        const queueItem = currentQueue.find(q => q.appointment_id === patientId);
+        const queueItem = currentQueue.find((q: any) => q.appointment_id === patientId);
         
         if (!queueItem) {
             return NextResponse.json({ message: 'Queue item not found' }, { status: 404 });

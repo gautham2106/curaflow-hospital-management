@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
+import { getClinicId, clinicIdNotFoundResponse } from '@/lib/api-utils';
 
 // URL shortening service with multiple fallbacks
 async function shortenUrl(longUrl: string): Promise<string> {
@@ -42,7 +43,11 @@ async function shortenUrl(longUrl: string): Promise<string> {
 }
 
 export async function POST(request: NextRequest) {
-    const { tokenData, sessionTimeRange, clinicName } = await request.json();
+    try {
+        const clinicId = getClinicId(request);
+        if (!clinicId) return clinicIdNotFoundResponse();
+
+        const { tokenData, sessionTimeRange, clinicName } = await request.json();
 
     // Debug logging
     console.log('WhatsApp API - Received tokenData:', JSON.stringify(tokenData, null, 2));
@@ -103,8 +108,15 @@ export async function POST(request: NextRequest) {
     } catch (error: any) {
         console.error('WhatsApp API Error:', error.response?.data || error.message);
         return NextResponse.json({
-            message: 'Failed to send WhatsApp message',
-            error: error.response?.data || error.message
+            error: 'Failed to send WhatsApp message',
+            details: error.response?.data || error.message
         }, { status: 500 });
+    }
+    } catch (error) {
+        console.error('Error in WhatsApp API:', error);
+        return NextResponse.json(
+            { error: 'Failed to process WhatsApp request' },
+            { status: 500 }
+        );
     }
 }

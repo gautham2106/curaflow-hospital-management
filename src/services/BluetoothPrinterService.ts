@@ -3,6 +3,13 @@
 import { TokenData } from '@/components/token/print-token';
 import { EventEmitter } from 'events';
 
+// Add Bluetooth API type declarations
+declare global {
+  interface Navigator {
+    bluetooth: any;
+  }
+}
+
 // These will be populated from the global window object by the script tags in layout.tsx
 let WebBluetoothReceiptPrinter: any = null;
 let ReceiptPrinterEncoder: any = null;

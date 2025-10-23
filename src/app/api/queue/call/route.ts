@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
 
         // Find the queue item by patient ID
         const queue = await supabaseService.getQueue(clinicId);
-        const queueItem = queue.find(q => q.appointment_id === patientId);
+        const queueItem = queue.find((q: any) => q.appointment_id === patientId);
         
         if (!queueItem) {
             return NextResponse.json({ message: 'Queue item not found' }, { status: 404 });
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
         if (updatedQueueItem.visits) {
             await supabaseService.updateVisit(updatedQueueItem.appointment_id, {
                 called_time: new Date().toISOString(),
-                was_out_of_turn: !!reason,
+                // was_out_of_turn: !!reason, // This field doesn't exist in the database schema
                 out_of_turn_reason: reason || null
             });
         }

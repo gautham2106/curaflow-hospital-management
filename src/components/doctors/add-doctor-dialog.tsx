@@ -68,7 +68,13 @@ export function AddDoctorDialog({ isOpen, onOpenChange, onAddDoctor, departments
   });
 
   const onSubmit = (data: DoctorFormData) => {
-    onAddDoctor(data);
+    onAddDoctor({
+      ...data,
+      clinic_id: '', // This will be set by the parent component
+      created_at: new Date().toISOString(),
+      phone: data.phone || null,
+      sessions: data.sessions || []
+    });
     reset();
   };
 

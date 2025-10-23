@@ -42,3 +42,4 @@ $$;
 
 -- Test the function
 SELECT * FROM get_full_queue('92fc77cd-e5d8-45b5-a359-a3a83692ed9d'::UUID);
+
