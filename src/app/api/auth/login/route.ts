@@ -11,6 +11,15 @@ export async function POST(request: Request) {
     const curaflowClinic = clinics.find(c => c.name === 'CuraFlow Central Hospital');
     const sunriseClinic = clinics.find(c => c.name === 'Sunrise Medical Clinic');
 
+    // Ensure we have valid clinic IDs
+    if (!curaflowClinic || !sunriseClinic) {
+      console.error('Clinic lookup failed:', { curaflowClinic, sunriseClinic });
+      return NextResponse.json(
+        { success: false, message: 'Clinic configuration error' },
+        { status: 500 }
+      );
+    }
+
     // For now, keep the mock authentication for demo purposes
     // In production, you would use Supabase Auth with proper user management
     if (username === 'admin' && pin === '1234') {
@@ -20,7 +29,7 @@ export async function POST(request: Request) {
         user: { name: 'Admin User', username: 'admin', role: 'admin' },
         token: 'mock-jwt-token-for-admin-user',
         clinic: {
-          id: curaflowClinic?.id || 'curaflow-central',
+          id: curaflowClinic.id,
           name: 'CuraFlow Central Hospital',
         }
       });
@@ -31,7 +40,7 @@ export async function POST(request: Request) {
             user: { name: 'Sunrise Admin', username: 'sunrise-admin', role: 'admin' },
             token: 'mock-jwt-token-for-sunrise-admin',
             clinic: {
-                id: sunriseClinic?.id || 'sunrise-medical',
+                id: sunriseClinic.id,
                 name: 'Sunrise Medical Clinic',
             }
         });
