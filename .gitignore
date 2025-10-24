@@ -1,0 +1,65 @@
+# Environment variables
+.env*
+!.env.example
+
+# Database credentials
+database/credentials.json
+config/secrets.json
+
+# API keys and secrets
+*.key
+*.pem
+*.p12
+*.pfx
+secrets/
+credentials/
+
+# Superadmin credentials
+superadmin-credentials.json
+admin-passwords.json
+
+# Production builds
+.next/
+out/
+dist/
+build/
+
+# Logs
+*.log
+logs/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+tmp/
+temp/
+
+# Node modules
+node_modules/
+
+# Package manager files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# TypeScript
+*.tsbuildinfo
+
+# Testing
+coverage/
+.nyc_output
+
+# Misc
+*.tgz
+*.tar.gz
+.cache/
+.parcel-cache/
+.vercel
