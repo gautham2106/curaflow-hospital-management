@@ -1,5 +1,6 @@
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { ApiResponse } from '@/lib/api-response';
 import { supabaseService } from '@/lib/supabase/service';
 import { getClinicId, clinicIdNotFoundResponse } from '@/lib/api-utils';
 
@@ -10,7 +11,7 @@ export async function GET(request: NextRequest) {
         
         const clinic = await supabaseService.getClinicById(clinicId);
         if (!clinic) {
-            return NextResponse.json({ message: 'Clinic not found' }, { status: 404 });
+            return ApiResponse.notFound('Clinic not found');
         }
 
         const hospitalInfo = {
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
             email: clinic.email
         };
 
-        return NextResponse.json(hospitalInfo);
+        return ApiResponse.success(hospitalInfo);
     } catch (error) {
         console.error('Error fetching hospital info:', error);
         return NextResponse.json(
@@ -50,7 +51,7 @@ export async function PUT(request: NextRequest) {
             email: updatedClinic.email
         };
 
-        return NextResponse.json(hospitalInfo);
+        return ApiResponse.success(hospitalInfo);
     } catch (error) {
         console.error('Error updating hospital info:', error);
         return NextResponse.json(

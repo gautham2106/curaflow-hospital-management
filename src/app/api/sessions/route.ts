@@ -1,29 +1,27 @@
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { supabaseService } from '@/lib/supabase/service';
 import { getClinicId, clinicIdNotFoundResponse } from '@/lib/api-utils';
+import { ApiResponse } from '@/lib/api-response';
 
 export async function GET(request: NextRequest) {
     try {
         const clinicId = getClinicId(request);
         if (!clinicId) return clinicIdNotFoundResponse();
-        
+
         const sessions = await supabaseService.getSessions(clinicId);
-        
+
         // Transform database format to frontend format
         const transformedSessions = sessions.map((session: any) => ({
             name: session.name,
             start: session.start_time,
             end: session.end_time
         }));
-        
-        return NextResponse.json(transformedSessions);
+
+        return ApiResponse.success(transformedSessions);
     } catch (error) {
         console.error('Error fetching sessions:', error);
-        return NextResponse.json(
-            { error: 'Failed to fetch sessions' },
-            { status: 500 }
-        );
+        return ApiResponse.internalServerError('Failed to fetch sessions');
     }
 }
 
@@ -33,7 +31,7 @@ export async function PUT(request: NextRequest) {
         if (!clinicId) return clinicIdNotFoundResponse();
 
         const newSessions = await request.json();
-        
+
         // Delete existing sessions for this clinic
         const existingSessions = await supabaseService.getSessions(clinicId);
         for (const session of existingSessions) {
@@ -59,12 +57,9 @@ export async function PUT(request: NextRequest) {
             end: session.end_time
         }));
 
-        return NextResponse.json(transformedSessions);
+        return ApiResponse.success(transformedSessions);
     } catch (error) {
         console.error('Error updating sessions:', error);
-        return NextResponse.json(
-            { error: 'Failed to update sessions' },
-            { status: 500 }
-        );
+        return ApiResponse.internalServerError('Failed to update sessions');
     }
 }

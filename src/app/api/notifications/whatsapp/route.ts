@@ -1,5 +1,6 @@
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { ApiResponse } from '@/lib/api-response';
 import axios from 'axios';
 import { getClinicId, clinicIdNotFoundResponse } from '@/lib/api-utils';
 

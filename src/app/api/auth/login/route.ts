@@ -1,6 +1,7 @@
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { supabaseService } from '@/lib/supabase/service';
+import { ApiResponse } from '@/lib/api-response';
 
 export async function POST(request: NextRequest) {
   try {
@@ -8,44 +9,35 @@ export async function POST(request: NextRequest) {
 
     // Validate input
     if (!username || !pin) {
-      return NextResponse.json(
-        { error: 'Username and PIN are required' },
-        { status: 400 }
-      );
+      return ApiResponse.badRequest('Username and PIN are required');
     }
 
     // Authenticate clinic using database function
     const { data: authResult, error: authError } = await supabaseService.supabase
-      .rpc('authenticate_clinic', { 
-        p_username: username, 
-        p_pin: pin 
+      .rpc('authenticate_clinic', {
+        p_username: username,
+        p_pin: pin
       });
 
     if (authError) {
       console.error('Authentication error:', authError);
-      return NextResponse.json(
-        { error: 'Authentication service error' },
-        { status: 500 }
-      );
+      return ApiResponse.internalServerError('Authentication service error');
     }
 
     // Check authentication result
     if (!authResult || authResult.length === 0 || !authResult[0].is_authenticated) {
-      return NextResponse.json(
-        { error: 'Invalid username or PIN' },
-        { status: 401 }
-      );
+      return ApiResponse.unauthorized('Invalid username or PIN');
     }
 
     const clinic = authResult[0];
 
     // On success, return user, token, and tenant information
-    return NextResponse.json({
+    return ApiResponse.success({
       success: true,
-      user: { 
-        name: clinic.admin_name, 
-        username: username, 
-        role: 'admin' 
+      user: {
+        name: clinic.admin_name,
+        username: username,
+        role: 'admin'
       },
       token: `mock-jwt-token-for-${clinic.clinic_id}`,
       clinic: {
@@ -56,9 +48,6 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Login error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return ApiResponse.internalServerError('Internal server error');
   }
 }

@@ -1,5 +1,6 @@
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { ApiResponse } from '@/lib/api-response';
 import { supabaseService } from '@/lib/supabase/service';
 import { getClinicId, clinicIdNotFoundResponse } from '@/lib/api-utils';
 
@@ -11,12 +12,12 @@ export async function POST(request: NextRequest) {
         const { doctorId, sessionName } = await request.json();
 
         if (!doctorId || !sessionName) {
-            return NextResponse.json({ message: "Doctor ID and session name are required" }, { status: 400 });
+            return ApiResponse.badRequest("Doctor ID and session name are required");
         }
 
         const doctor = await supabaseService.getDoctorById(doctorId);
         if (!doctor) {
-            return NextResponse.json({ message: "Doctor not found" }, { status: 404 });
+            return ApiResponse.notFound("Doctor not found");
         }
 
         // End session with detailed tracking
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
         console.log(`Session ${sessionName} ended for ${doctor.name}`);
         console.log('Session Statistics:', sessionStats);
 
-        return NextResponse.json({
+        return ApiResponse.success({
             queue,
             sessionStats: {
                 totalPatients: sessionStats.total_patients,
@@ -43,9 +44,6 @@ export async function POST(request: NextRequest) {
         });
     } catch (error) {
         console.error('Error ending session:', error);
-        return NextResponse.json(
-            { error: 'Failed to end session' },
-            { status: 500 }
-        );
+        return ApiResponse.internalServerError('Failed to end session');
     }
 }

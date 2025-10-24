@@ -1,5 +1,6 @@
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { ApiResponse } from '@/lib/api-response';
 import { supabaseService } from '@/lib/supabase/service';
 import { getClinicId, clinicIdNotFoundResponse } from '@/lib/api-utils';
 
@@ -11,7 +12,7 @@ export async function POST(request: NextRequest) {
         const { orderedIds } = await request.json();
         
         if (!Array.isArray(orderedIds)) {
-            return NextResponse.json({ message: "Invalid orderedIds format" }, { status: 400 });
+            return ApiResponse.badRequest("Invalid orderedIds format");
         }
 
         // Create reorder data with display_order
@@ -22,12 +23,9 @@ export async function POST(request: NextRequest) {
 
         await supabaseService.reorderAdResources(clinicId, reorderedResources);
 
-        return NextResponse.json({ message: "Order updated successfully" });
+        return ApiResponse.success({ message: "Order updated successfully" });
     } catch (error) {
         console.error('Error reordering ad resources:', error);
-        return NextResponse.json(
-            { error: 'Failed to reorder ad resources' },
-            { status: 500 }
-        );
+        return ApiResponse.internalServerError('Failed to reorder ad resources');
     }
 }

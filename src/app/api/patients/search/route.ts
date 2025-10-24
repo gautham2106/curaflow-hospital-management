@@ -1,7 +1,8 @@
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { supabaseService } from '@/lib/supabase/service';
 import { getClinicId, clinicIdNotFoundResponse } from '@/lib/api-utils';
+import { ApiResponse } from '@/lib/api-response';
 
 export async function GET(request: NextRequest) {
     try {
@@ -12,16 +13,13 @@ export async function GET(request: NextRequest) {
         const phone = searchParams.get('phone');
 
         if (!phone) {
-            return NextResponse.json({ message: 'Phone number is required' }, { status: 400 });
+            return ApiResponse.badRequest('Phone number is required');
         }
 
         const results = await supabaseService.searchPatients(clinicId, phone);
-        return NextResponse.json(results);
+        return ApiResponse.success(results);
     } catch (error) {
         console.error('Error searching patients:', error);
-        return NextResponse.json(
-            { error: 'Failed to search patients' },
-            { status: 500 }
-        );
+        return ApiResponse.internalServerError('Failed to search patients');
     }
 }

@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { ApiResponse } from '@/lib/api-response';
 import { supabaseService } from '@/lib/supabase/service';
 import { validateSuperadminAccess, createErrorResponse } from '@/lib/superadmin-auth';
 
@@ -118,7 +119,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json(clinics || []);
+    return ApiResponse.success(clinics || []);
 
   } catch (error) {
     console.error('Error fetching clinics:', error);

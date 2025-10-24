@@ -1,9 +1,10 @@
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { supabaseService } from '@/lib/supabase/service';
 import { v4 as uuidv4 } from 'uuid';
 import { format } from 'date-fns';
-import { getClinicId, clinicIdNotFoundResponse } from '@/lib/api-utils';
+import { getClinicId, clinicIdNotFoundResponse, validateRequiredFields } from '@/lib/api-utils';
+import { ApiResponse } from '@/lib/api-response';
 
 export async function POST(request: NextRequest) {
     try {
@@ -11,17 +12,26 @@ export async function POST(request: NextRequest) {
         if (!clinicId) return clinicIdNotFoundResponse();
 
         const { isNewPatient, patient, appointment } = await request.json();
+
+        // Validate required fields
+        const validationError = validateRequiredFields(appointment, ['doctorId', 'session', 'date']);
+        if (validationError) return validationError;
+
         const { doctorId, session, date: apptDateStr } = appointment;
         const apptDate = new Date(apptDateStr);
 
         // Get doctor information
         const doctor = await supabaseService.getDoctorById(doctorId);
         if (!doctor) {
-            return NextResponse.json({ message: 'Doctor not found' }, { status: 404 });
+            return ApiResponse.notFound('Doctor not found');
         }
 
         let patientRecord;
         if (isNewPatient) {
+            // Validate patient fields for new patient
+            const patientValidationError = validateRequiredFields(patient, ['name', 'phone', 'age', 'gender']);
+            if (patientValidationError) return patientValidationError;
+
             // Create new patient
             patientRecord = await supabaseService.createPatient({
                 clinic_id: clinicId,
@@ -37,20 +47,20 @@ export async function POST(request: NextRequest) {
             // Update existing patient
             const existingPatient = await supabaseService.getPatientById(patient.id);
             if (!existingPatient) {
-                return NextResponse.json({ message: 'Existing patient not found' }, { status: 404 });
+                return ApiResponse.notFound('Existing patient not found');
             }
-            
+
             patientRecord = await supabaseService.updatePatient(patient.id, {
                 total_visits: (existingPatient.total_visits || 0) + 1,
                 last_visit: new Date().toISOString(),
             });
         }
-        
+
         // Get next token number for this doctor, date, and session
         const nextTokenNumber = await supabaseService.getNextTokenNumber(
-            clinicId, 
-            doctorId, 
-            format(apptDate, 'yyyy-MM-dd'), 
+            clinicId,
+            doctorId,
+            format(apptDate, 'yyyy-MM-dd'),
             session
         ) + 1;
 
@@ -65,7 +75,7 @@ export async function POST(request: NextRequest) {
             check_in_time: new Date().toISOString(),
             status: 'Scheduled'
         });
-        
+
         // Add to queue if it's today's appointment
         if (format(apptDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')) {
             await supabaseService.addToQueue({
@@ -90,18 +100,15 @@ export async function POST(request: NextRequest) {
             status: 'Scheduled' as const,
             clinicId: clinicId
         };
-        
+
         // Debug logging
         console.log('Token API - Generated tokenData:', JSON.stringify(tokenData, null, 2));
         console.log('Token API - nextTokenNumber:', nextTokenNumber);
         console.log('Token API - tokenNumber type:', typeof nextTokenNumber);
-        
-        return NextResponse.json(tokenData, { status: 201 });
+
+        return ApiResponse.created(tokenData);
     } catch (error) {
         console.error('Error creating token:', error);
-        return NextResponse.json(
-            { error: 'Failed to create token' },
-            { status: 500 }
-        );
+        return ApiResponse.internalServerError('Failed to create token');
     }
 }

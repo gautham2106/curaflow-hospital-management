@@ -1,7 +1,8 @@
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { supabaseService } from '@/lib/supabase/service';
-import { getClinicId, clinicIdNotFoundResponse } from '@/lib/api-utils';
+import { getClinicId, clinicIdNotFoundResponse, validateRequiredFields } from '@/lib/api-utils';
+import { ApiResponse } from '@/lib/api-response';
 
 export async function POST(request: NextRequest) {
     try {
@@ -10,9 +11,9 @@ export async function POST(request: NextRequest) {
 
         const { patientId, doctorId, reason } = await request.json();
 
-        if (!patientId) {
-            return NextResponse.json({ message: 'Patient ID is required' }, { status: 400 });
-        }
+        // Validate required fields
+        const validationError = validateRequiredFields({ patientId }, ['patientId']);
+        if (validationError) return validationError;
 
         // Complete any current patient in consultation for this doctor
         if (doctorId) {
@@ -28,14 +29,14 @@ export async function POST(request: NextRequest) {
         // Find the queue item by patient ID
         const queue = await supabaseService.getQueue(clinicId);
         const queueItem = queue.find((q: any) => q.appointment_id === patientId);
-        
+
         if (!queueItem) {
-            return NextResponse.json({ message: 'Queue item not found' }, { status: 404 });
+            return ApiResponse.notFound('Queue item not found');
         }
 
         // Call the patient
         const updatedQueueItem = await supabaseService.callPatient(queueItem.id, reason);
-        
+
         // Update visit record with call details
         if (updatedQueueItem.visits) {
             await supabaseService.updateVisit(updatedQueueItem.appointment_id, {
@@ -47,12 +48,9 @@ export async function POST(request: NextRequest) {
 
         // Get updated queue
         const updatedQueue = await supabaseService.getQueue(clinicId);
-        return NextResponse.json(updatedQueue);
+        return ApiResponse.success(updatedQueue);
     } catch (error) {
         console.error('Error calling patient:', error);
-        return NextResponse.json(
-            { error: 'Failed to call patient' },
-            { status: 500 }
-        );
+        return ApiResponse.internalServerError('Failed to call patient');
     }
 }

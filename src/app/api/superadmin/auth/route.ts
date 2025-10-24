@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { supabaseService } from '@/lib/supabase/service';
+import { ApiResponse } from '@/lib/api-response';
 
 // Superadmin login with proper database integration
 export async function POST(request: NextRequest) {
@@ -8,40 +9,31 @@ export async function POST(request: NextRequest) {
 
     // Validate input
     if (!username || !password) {
-      return NextResponse.json(
-        { error: 'Username and password are required' },
-        { status: 400 }
-      );
+      return ApiResponse.badRequest('Username and password are required');
     }
 
     // Authenticate superadmin using database function
     const { data: authResult, error: authError } = await supabaseService.supabase
-      .rpc('authenticate_superadmin', { 
-        p_username: username, 
-        p_password: password 
+      .rpc('authenticate_superadmin', {
+        p_username: username,
+        p_password: password
       });
 
     if (authError) {
       console.error('Superadmin authentication error:', authError);
-      return NextResponse.json(
-        { error: 'Authentication service error' },
-        { status: 500 }
-      );
+      return ApiResponse.internalServerError('Authentication service error');
     }
 
     // Check authentication result
     if (!authResult || authResult.length === 0 || !authResult[0].is_authenticated) {
-      return NextResponse.json(
-        { error: 'Invalid username or password' },
-        { status: 401 }
-      );
+      return ApiResponse.unauthorized('Invalid username or password');
     }
 
     const superadmin = authResult[0];
 
     // Generate session token
     const sessionToken = `superadmin-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
+
     // Store session in database
     const { error: sessionError } = await supabaseService.supabase
       .from('superadmin_sessions')
@@ -58,14 +50,14 @@ export async function POST(request: NextRequest) {
       // Continue anyway with token
     }
 
-    return NextResponse.json({
+    return ApiResponse.success({
       success: true,
-      superadmin: { 
+      superadmin: {
         id: superadmin.superadmin_id,
-        name: superadmin.full_name, 
+        name: superadmin.full_name,
         username: superadmin.username,
         email: superadmin.email,
-        role: 'superadmin' 
+        role: 'superadmin'
       },
       token: sessionToken,
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
@@ -73,10 +65,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Superadmin login error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return ApiResponse.internalServerError('Internal server error');
   }
 }
 
@@ -85,10 +74,7 @@ export async function GET(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'Authorization token required' },
-        { status: 401 }
-      );
+      return ApiResponse.unauthorized('Authorization token required');
     }
 
     const token = authHeader.substring(7);
@@ -99,38 +85,29 @@ export async function GET(request: NextRequest) {
 
     if (validationError) {
       console.error('Session validation error:', validationError);
-      return NextResponse.json(
-        { error: 'Session validation error' },
-        { status: 500 }
-      );
+      return ApiResponse.internalServerError('Session validation error');
     }
 
     // Check validation result
     if (!validationResult || validationResult.length === 0 || !validationResult[0].is_valid) {
-      return NextResponse.json(
-        { error: 'Invalid or expired session' },
-        { status: 401 }
-      );
+      return ApiResponse.unauthorized('Invalid or expired session');
     }
 
     const superadmin = validationResult[0];
 
-    return NextResponse.json({
+    return ApiResponse.success({
       success: true,
-      superadmin: { 
+      superadmin: {
         id: superadmin.superadmin_id,
-        name: superadmin.full_name, 
+        name: superadmin.full_name,
         username: superadmin.username,
         email: superadmin.email,
-        role: 'superadmin' 
+        role: 'superadmin'
       }
     });
 
   } catch (error) {
     console.error('Session validation error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return ApiResponse.internalServerError('Internal server error');
   }
 }

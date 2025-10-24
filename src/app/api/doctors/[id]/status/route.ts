@@ -1,5 +1,6 @@
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { ApiResponse } from '@/lib/api-response';
 import { supabaseService } from '@/lib/supabase/service';
 import { getClinicId, clinicIdNotFoundResponse } from '@/lib/api-utils';
 
@@ -15,22 +16,17 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
         const currentDoctor = await supabaseService.getDoctorById(id);
         
         if (!currentDoctor) {
-            return NextResponse.json({ message: "Doctor not found" }, { status: 404 });
+            return ApiResponse.notFound("Doctor not found");
         }
 
         if (currentDoctor.status === 'On Leave' && status === 'Available') {
-            return NextResponse.json({ 
-                message: `Cannot set availability for a doctor who is On Leave.` 
-            }, { status: 400 });
+            return ApiResponse.badRequest(`Cannot set availability for a doctor who is On Leave.`);
         }
 
         const updatedDoctor = await supabaseService.updateDoctorStatus(id, status);
-        return NextResponse.json(updatedDoctor);
+        return ApiResponse.success(updatedDoctor);
     } catch (error) {
         console.error('Error updating doctor status:', error);
-        return NextResponse.json(
-            { error: 'Failed to update doctor status' },
-            { status: 500 }
-        );
+        return ApiResponse.internalServerError('Failed to update doctor status');
     }
 }

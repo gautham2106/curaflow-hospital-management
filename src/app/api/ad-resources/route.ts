@@ -1,21 +1,19 @@
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { supabaseService } from '@/lib/supabase/service';
-import { getClinicId, clinicIdNotFoundResponse } from '@/lib/api-utils';
+import { getClinicId, clinicIdNotFoundResponse, validateRequiredFields } from '@/lib/api-utils';
+import { ApiResponse } from '@/lib/api-response';
 
 export async function GET(request: NextRequest) {
     try {
         const clinicId = getClinicId(request);
         if (!clinicId) return clinicIdNotFoundResponse();
-        
+
         const adResources = await supabaseService.getAdResources(clinicId);
-        return NextResponse.json(adResources);
+        return ApiResponse.success(adResources);
     } catch (error) {
         console.error('Error fetching ad resources:', error);
-        return NextResponse.json(
-            { error: 'Failed to fetch ad resources' },
-            { status: 500 }
-        );
+        return ApiResponse.internalServerError('Failed to fetch ad resources');
     }
 }
 
@@ -25,6 +23,11 @@ export async function POST(request: NextRequest) {
         if (!clinicId) return clinicIdNotFoundResponse();
 
         const resourceData = await request.json();
+
+        // Validate required fields
+        const validationError = validateRequiredFields(resourceData, ['title', 'type', 'url']);
+        if (validationError) return validationError;
+
         const newResource = await supabaseService.createAdResource({
             clinic_id: clinicId,
             title: resourceData.title,
@@ -33,13 +36,10 @@ export async function POST(request: NextRequest) {
             duration: resourceData.duration || 30,
             display_order: resourceData.display_order || 0
         });
-        
-        return NextResponse.json(newResource, { status: 201 });
+
+        return ApiResponse.created(newResource);
     } catch (error) {
         console.error('Error creating ad resource:', error);
-        return NextResponse.json(
-            { error: 'Failed to create ad resource' },
-            { status: 500 }
-        );
+        return ApiResponse.internalServerError('Failed to create ad resource');
     }
 }

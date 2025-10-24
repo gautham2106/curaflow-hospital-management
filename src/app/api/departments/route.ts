@@ -1,21 +1,19 @@
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { supabaseService } from '@/lib/supabase/service';
-import { getClinicId, clinicIdNotFoundResponse } from '@/lib/api-utils';
+import { getClinicId, clinicIdNotFoundResponse, validateRequiredFields } from '@/lib/api-utils';
+import { ApiResponse } from '@/lib/api-response';
 
 export async function GET(request: NextRequest) {
     try {
         const clinicId = getClinicId(request);
         if (!clinicId) return clinicIdNotFoundResponse();
-        
+
         const departments = await supabaseService.getDepartments(clinicId);
-        return NextResponse.json(departments);
+        return ApiResponse.success(departments);
     } catch (error) {
         console.error('Error fetching departments:', error);
-        return NextResponse.json(
-            { error: 'Failed to fetch departments' },
-            { status: 500 }
-        );
+        return ApiResponse.internalServerError('Failed to fetch departments');
     }
 }
 
@@ -25,22 +23,20 @@ export async function POST(request: NextRequest) {
         if (!clinicId) return clinicIdNotFoundResponse();
 
         const { name } = await request.json();
-        if (!name) {
-            return NextResponse.json({ message: 'Department name is required' }, { status: 400 });
-        }
+
+        // Validate required fields
+        const validationError = validateRequiredFields({ name }, ['name']);
+        if (validationError) return validationError;
 
         const newDepartment = await supabaseService.createDepartment({
             clinic_id: clinicId,
             name: name
         });
 
-        return NextResponse.json(newDepartment, { status: 201 });
+        return ApiResponse.created(newDepartment);
     } catch (error) {
         console.error('Error creating department:', error);
-        return NextResponse.json(
-            { error: 'Failed to create department' },
-            { status: 500 }
-        );
+        return ApiResponse.internalServerError('Failed to create department');
     }
 }
 
@@ -50,17 +46,15 @@ export async function DELETE(request: NextRequest) {
         if (!clinicId) return clinicIdNotFoundResponse();
 
         const { id } = await request.json();
-        if (!id) {
-            return NextResponse.json({ message: 'Department ID is required' }, { status: 400 });
-        }
+
+        // Validate required fields
+        const validationError = validateRequiredFields({ id }, ['id']);
+        if (validationError) return validationError;
 
         await supabaseService.deleteDepartment(id);
-        return NextResponse.json({ message: 'Department removed' });
+        return ApiResponse.success({ message: 'Department removed' });
     } catch (error) {
         console.error('Error deleting department:', error);
-        return NextResponse.json(
-            { error: 'Failed to delete department' },
-            { status: 500 }
-        );
+        return ApiResponse.internalServerError('Failed to delete department');
     }
 }

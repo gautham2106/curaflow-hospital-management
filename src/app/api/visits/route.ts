@@ -1,7 +1,8 @@
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { supabaseService } from '@/lib/supabase/service';
-import { getClinicId, clinicIdNotFoundResponse } from '@/lib/api-utils';
+import { getClinicId, clinicIdNotFoundResponse, validateRequiredFields } from '@/lib/api-utils';
+import { ApiResponse } from '@/lib/api-response';
 
 export async function GET(request: NextRequest) {
     try {
@@ -24,13 +25,10 @@ export async function GET(request: NextRequest) {
             visits = await supabaseService.getVisits(clinicId);
         }
 
-        return NextResponse.json(visits);
+        return ApiResponse.success(visits);
     } catch (error) {
         console.error('Error fetching visits:', error);
-        return NextResponse.json(
-            { error: 'Failed to fetch visits' },
-            { status: 500 }
-        );
+        return ApiResponse.internalServerError('Failed to fetch visits');
     }
 }
 
@@ -40,10 +38,10 @@ export async function POST(request: NextRequest) {
         if (!clinicId) return clinicIdNotFoundResponse();
 
         const { visitId, status } = await request.json();
-        
-        if (!visitId || !status) {
-            return NextResponse.json({ message: "Visit ID and status are required" }, { status: 400 });
-        }
+
+        // Validate required fields
+        const validationError = validateRequiredFields({ visitId, status }, ['visitId', 'status']);
+        if (validationError) return validationError;
 
         const updatedVisit = await supabaseService.updateVisit(visitId, { status });
 
@@ -61,13 +59,10 @@ export async function POST(request: NextRequest) {
                 // Continue with visit update even if queue update fails
             }
         }
-        
-        return NextResponse.json(updatedVisit);
+
+        return ApiResponse.success(updatedVisit);
     } catch (error) {
         console.error('Error updating visit:', error);
-        return NextResponse.json(
-            { error: 'Failed to update visit' },
-            { status: 500 }
-        );
+        return ApiResponse.internalServerError('Failed to update visit');
     }
 }

@@ -1,24 +1,22 @@
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { supabaseService } from '@/lib/supabase/service';
-import { getClinicId, clinicIdNotFoundResponse } from '@/lib/api-utils';
+import { getClinicId, clinicIdNotFoundResponse, validateRequiredFields } from '@/lib/api-utils';
+import { ApiResponse } from '@/lib/api-response';
 
 export async function GET(request: NextRequest) {
     try {
         const clinicId = getClinicId(request);
         if (!clinicId) return clinicIdNotFoundResponse();
-        
+
         const { searchParams } = new URL(request.url);
         const status = searchParams.get('status');
 
         const doctors = await supabaseService.getDoctors(clinicId, status || undefined);
-        return NextResponse.json(doctors);
+        return ApiResponse.success(doctors);
     } catch (error) {
         console.error('Error fetching doctors:', error);
-        return NextResponse.json(
-            { error: 'Failed to fetch doctors' },
-            { status: 500 }
-        );
+        return ApiResponse.internalServerError('Failed to fetch doctors');
     }
 }
 
@@ -26,8 +24,13 @@ export async function POST(request: NextRequest) {
     try {
         const clinicId = getClinicId(request);
         if (!clinicId) return clinicIdNotFoundResponse();
-        
+
         const body = await request.json();
+
+        // Validate required fields
+        const validationError = validateRequiredFields(body, ['name', 'specialty']);
+        if (validationError) return validationError;
+
         const newDoctor = await supabaseService.createDoctor({
             clinic_id: clinicId,
             name: body.name,
@@ -37,13 +40,10 @@ export async function POST(request: NextRequest) {
             status: 'Available',
             sessions: body.sessions || []
         });
-        
-        return NextResponse.json(newDoctor, { status: 201 });
+
+        return ApiResponse.created(newDoctor);
     } catch (error) {
         console.error('Error creating doctor:', error);
-        return NextResponse.json(
-            { error: 'Failed to create doctor' },
-            { status: 500 }
-        );
+        return ApiResponse.internalServerError('Failed to create doctor');
     }
 }

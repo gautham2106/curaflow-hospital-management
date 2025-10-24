@@ -1,5 +1,6 @@
 
 import { NextResponse } from 'next/server';
+import { ApiResponse } from '@/lib/api-response';
 import { supabaseService } from '@/lib/supabase/service';
 
 export async function GET() {
@@ -8,7 +9,7 @@ export async function GET() {
         // For now, we'll return an empty schedule as this endpoint seems to be for mock data
         const schedule: Record<string, { session: string, tokens: number }[]> = {};
         
-        return NextResponse.json(schedule);
+        return ApiResponse.success(schedule);
     } catch (error) {
         console.error('Error fetching today\'s schedule:', error);
         return NextResponse.json(
