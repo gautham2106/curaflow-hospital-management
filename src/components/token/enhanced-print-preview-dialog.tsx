@@ -78,9 +78,13 @@ export function EnhancedPrintPreviewDialog({
         const sessionTimeRange = sessionInfo ? `${formatTime(sessionInfo.start)} - ${formatTime(sessionInfo.end)}` : '';
         const clinicName = sessionStorage.getItem('clinicName') || 'CuraFlow Clinic';
 
+        const clinicId = sessionStorage.getItem('clinicId');
         const response = await fetch('/api/notifications/whatsapp', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'x-clinic-id': clinicId || ''
+            },
             body: JSON.stringify({ tokenData, sessionTimeRange, clinicName }),
         });
 
