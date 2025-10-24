@@ -1,73 +1,51 @@
-
-import { NextRequest } from 'next/server';
-import { ApiResponse } from '@/lib/api-response';
-import { getClinicId, clinicIdNotFoundResponse, validateRequiredFields } from '@/lib/api-utils';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
     try {
-        const clinicId = getClinicId(request);
-        if (!clinicId) return clinicIdNotFoundResponse();
+        console.log('WhatsApp API - Request received');
+        
+        // Get clinic ID from headers
+        const clinicId = request.headers.get('x-clinic-id');
+        console.log('Clinic ID:', clinicId);
+        
+        if (!clinicId) {
+            return NextResponse.json(
+                { error: 'Clinic ID not found in request headers' },
+                { status: 400 }
+            );
+        }
 
+        // Parse request body
         const body = await request.json();
-        
-        // Validate required fields
-        const validation = validateRequiredFields(body, [
-            'tokenData',
-            'sessionTimeRange', 
-            'clinicName'
-        ]);
-        
-        if (!validation.isValid) {
-            return ApiResponse.badRequest(validation.error);
+        console.log('Request body:', JSON.stringify(body, null, 2));
+
+        // Simple validation
+        if (!body.tokenData || !body.tokenData.patientName) {
+            return NextResponse.json(
+                { error: 'Missing required data' },
+                { status: 400 }
+            );
         }
 
-        const { tokenData, sessionTimeRange, clinicName } = body;
-
-        // Validate tokenData structure
-        const tokenValidation = validateRequiredFields(tokenData, [
-            'id',
-            'clinicId', 
-            'patientName',
-            'phone',
-            'tokenNumber',
-            'date',
-            'session',
-            'doctor'
-        ]);
-        
-        if (!tokenValidation.isValid) {
-            return ApiResponse.badRequest(`Invalid tokenData: ${tokenValidation.error}`);
-        }
-
-        // Validate doctor structure
-        const doctorValidation = validateRequiredFields(tokenData.doctor, [
-            'id',
-            'name',
-            'specialty'
-        ]);
-        
-        if (!doctorValidation.isValid) {
-            return ApiResponse.badRequest(`Invalid doctor data: ${doctorValidation.error}`);
-        }
-
-        console.log('WhatsApp API - Processing request for:', tokenData.patientName);
-
-        // For now, return success without actually sending WhatsApp
-        // This will help us verify the API structure is working
-        return ApiResponse.success({
+        // Return success response
+        return NextResponse.json({
+            success: true,
             message: 'WhatsApp notification would be sent',
             data: {
-                patientName: tokenData.patientName,
-                clinicName: clinicName,
-                tokenNumber: tokenData.tokenNumber,
-                doctorName: tokenData.doctor.name,
-                session: tokenData.session,
-                phone: tokenData.phone
+                patientName: body.tokenData.patientName,
+                clinicName: body.clinicName || 'Unknown Clinic',
+                tokenNumber: body.tokenData.tokenNumber || 'N/A',
+                doctorName: body.tokenData.doctor?.name || 'Unknown Doctor',
+                session: body.tokenData.session || 'Unknown Session',
+                phone: body.tokenData.phone || 'N/A'
             }
         });
 
     } catch (error) {
         console.error('Error in WhatsApp API:', error);
-        return ApiResponse.internalServerError('Failed to process WhatsApp request');
+        return NextResponse.json(
+            { error: 'Failed to process WhatsApp request' },
+            { status: 500 }
+        );
     }
 }
