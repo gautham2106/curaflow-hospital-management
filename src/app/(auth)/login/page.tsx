@@ -113,7 +113,7 @@ export default function LoginPage() {
         toast({
           variant: "destructive",
           title: "Login Failed",
-          description: errorData.message || "Invalid credentials. Please try again.",
+          description: errorData.error || "Invalid credentials. Please try again.",
         });
       }
     } catch (error) {

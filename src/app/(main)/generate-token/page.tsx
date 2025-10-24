@@ -290,7 +290,7 @@ export default function GenerateTokenPage() {
         const response = await post('/api/tokens', requestBody);
         if (!response || !response.ok) {
             const errorData = await response?.json();
-            throw new Error(errorData.message || 'Failed to generate token.');
+            throw new Error(errorData.error || 'Failed to generate token.');
         }
 
         const tokenData: TokenData = await response.json();
