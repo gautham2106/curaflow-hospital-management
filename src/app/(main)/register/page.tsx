@@ -43,18 +43,35 @@ import { useCrossPageSync } from '@/hooks/use-cross-page-sync';
 type SortKey = keyof VisitRecord | 'patient_name' | 'doctor_name' | '';
 type SortDirection = 'asc' | 'desc';
 
-const getStatusBadge = (status: VisitRecord['status']) => {
+// Function to map complex statuses to simplified 3 options
+const getSimplifiedStatus = (status: VisitRecord['status']): 'Scheduled' | 'Completed' | 'No Show' => {
   switch (status) {
     case 'Completed':
-      return <Badge className="bg-green-100 text-green-800 hover:bg-green-200">✅ Completed</Badge>;
+      return 'Completed';
     case 'No-show':
-      return <Badge className="bg-red-100 text-red-800 hover:bg-red-200">❌ No-show</Badge>;
     case 'Cancelled':
-      return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-200">🚫 Cancelled</Badge>;
+      return 'No Show';
+    case 'Scheduled':
+    case 'Waiting':
+    case 'In-consultation':
+    case 'Skipped':
+    default:
+      return 'Scheduled';
+  }
+};
+
+const getStatusBadge = (status: VisitRecord['status']) => {
+  const simplifiedStatus = getSimplifiedStatus(status);
+  
+  switch (simplifiedStatus) {
+    case 'Completed':
+      return <Badge className="bg-green-100 text-green-800 hover:bg-green-200">✅ Completed</Badge>;
+    case 'No Show':
+      return <Badge className="bg-red-100 text-red-800 hover:bg-red-200">❌ No Show</Badge>;
     case 'Scheduled':
       return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">🗓️ Scheduled</Badge>;
     default:
-      return <Badge variant="secondary">{status}</Badge>;
+      return <Badge variant="secondary">{simplifiedStatus}</Badge>;
   }
 };
 
@@ -126,7 +143,7 @@ const PatientHistory = ({ patient, onBack }: { patient: any; onBack: () => void 
                                   <p className="text-sm text-muted-foreground">{visit.doctors?.name || 'N/A'} - {visit.session}</p>
                                   <p className="text-xs text-muted-foreground">Token: #{visit.token_number}</p>
                               </div>
-                              <Badge variant={visit.status === 'Completed' ? 'secondary' : 'destructive'}>{visit.status}</Badge>
+                              <Badge variant={getSimplifiedStatus(visit.status) === 'Completed' ? 'secondary' : 'destructive'}>{getSimplifiedStatus(visit.status)}</Badge>
                           </div>
                       ))}
                   </div>
@@ -330,7 +347,7 @@ export default function VisitRegisterPage() {
       records = records.filter((r) => r.session === filterSession);
     }
     if (filterStatus !== 'all') {
-      records = records.filter((r) => r.status === filterStatus);
+      records = records.filter((r) => getSimplifiedStatus(r.status) === filterStatus);
     }
 
     // Searching
@@ -370,7 +387,7 @@ export default function VisitRegisterPage() {
         (record as any).patient_name || 'N/A',
         (record as any).doctor_name || 'N/A',
         record.session,
-        record.status,
+        getSimplifiedStatus(record.status),
     ]);
 
     doc.setFontSize(18);
@@ -534,8 +551,8 @@ export default function VisitRegisterPage() {
             isLoading={isLoading}
           />
            <StatCard
-            title="No-Shows"
-            value={dailyRecords.filter(v => v.status === 'No-show').length}
+            title="No Shows"
+            value={dailyRecords.filter(v => getSimplifiedStatus(v.status) === 'No Show').length}
             description="Booked appointments that were missed"
             icon={UserX}
             isLoading={isLoading}
@@ -576,10 +593,9 @@ export default function VisitRegisterPage() {
                         <SelectTrigger><SelectValue placeholder="All Statuses" /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">All Statuses</SelectItem>
-                            <SelectItem value="Scheduled">Scheduled</SelectItem>
-                            <SelectItem value="Completed">Completed</SelectItem>
-                            <SelectItem value="No-show">No-show</SelectItem>
-                            <SelectItem value="Cancelled">Cancelled</SelectItem>
+                            <SelectItem value="Scheduled">🗓️ Scheduled</SelectItem>
+                            <SelectItem value="Completed">✅ Completed</SelectItem>
+                            <SelectItem value="No Show">❌ No Show</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
