@@ -280,7 +280,7 @@ export default function GenerateTokenPage() {
           phone,
       },
       appointment: {
-          date: date,
+          date: format(date, 'yyyy-MM-dd'),
           doctorId: selectedDoctorId,
           session: selectedSession,
       }

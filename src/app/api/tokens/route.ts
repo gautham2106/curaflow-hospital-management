@@ -18,7 +18,14 @@ export async function POST(request: NextRequest) {
         if (validationError) return validationError;
 
         const { doctorId, session, date: apptDateStr } = appointment;
-        const apptDate = new Date(apptDateStr);
+        // Parse date string properly to avoid timezone issues
+        // Ensure we're working with local timezone by adding T00:00:00
+        const apptDate = new Date(apptDateStr + 'T00:00:00');
+        
+        // Validate the date is valid
+        if (isNaN(apptDate.getTime())) {
+            return ApiResponse.badRequest('Invalid appointment date');
+        }
 
         // Get doctor information
         const doctor = await supabaseService.getDoctorById(doctorId);
