@@ -31,8 +31,12 @@ function AdCarousel({ resources, orientation }: { resources: AdResource[], orien
         return () => clearInterval(timer);
     }, [resources]);
 
-    // Early return if no resources
-    if (!resources || resources.length === 0) {
+    // Handle empty resources case
+    const hasResources = resources && resources.length > 0;
+    const currentResource = hasResources ? resources[currentIndex] : null;
+
+    // Early return if no resources - but after all hooks
+    if (!hasResources) {
         return (
             <div className="h-full w-full overflow-hidden rounded-lg shadow-lg bg-card flex items-center justify-center">
                 <p className="text-muted-foreground">No ads available</p>
@@ -40,13 +44,11 @@ function AdCarousel({ resources, orientation }: { resources: AdResource[], orien
         );
     }
 
-    const currentResource = resources[currentIndex];
-
     return (
         <div className="h-full w-full overflow-hidden rounded-lg shadow-lg bg-black relative">
             {/* Vertical Reels Container */}
             <div className="relative w-full h-full flex items-center justify-center">
-                {currentResource.type === 'image' && (
+                {currentResource?.type === 'image' && (
                     <img 
                         src={currentResource.url} 
                         alt={currentResource.title} 
@@ -58,7 +60,7 @@ function AdCarousel({ resources, orientation }: { resources: AdResource[], orien
                         }}
                     />
                 )}
-                {currentResource.type === 'video' && (
+                {currentResource?.type === 'video' && (
                     <video
                         src={currentResource.url}
                         muted
@@ -77,12 +79,12 @@ function AdCarousel({ resources, orientation }: { resources: AdResource[], orien
             
             {/* Vertical Reels Overlay */}
             <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black via-black/50 to-transparent text-white">
-                <h3 className="font-bold text-2xl mb-2">{currentResource.title}</h3>
-                <p className="text-sm opacity-80">{currentResource.duration} seconds</p>
+                <h3 className="font-bold text-2xl mb-2">{currentResource?.title}</h3>
+                <p className="text-sm opacity-80">{currentResource?.duration} seconds</p>
             </div>
 
             {/* Vertical Reels Progress Indicator */}
-            {resources.length > 1 && (
+            {resources && resources.length > 1 && (
                 <div className="absolute top-4 right-4 flex flex-col space-y-2">
                     {resources.map((_, index) => (
                         <div
@@ -96,7 +98,7 @@ function AdCarousel({ resources, orientation }: { resources: AdResource[], orien
             )}
 
             {/* Vertical Reels Counter */}
-            {resources.length > 1 && (
+            {resources && resources.length > 1 && (
                 <div className="absolute top-4 left-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
                     {currentIndex + 1} / {resources.length}
                 </div>
