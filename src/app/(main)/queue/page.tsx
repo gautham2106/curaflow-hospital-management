@@ -12,8 +12,9 @@ import { cn } from "@/lib/utils";
 import { Play, SkipForward, RotateCcw, UserCheck, Power, Loader2 } from "lucide-react";
 import { ReasonDialog } from "@/components/queue/reason-dialog";
 import { useFetch } from "@/hooks/use-api";
-import { checkSessionTransition, shouldClearPreviousSessionData, formatTimeUntilNextSession, getMinutesUntilCurrentSessionEnds } from "@/lib/session-transition";
+import { checkSessionTransition, shouldClearPreviousSessionData, formatTimeUntilNextSession, getMinutesUntilCurrentSessionEnds, getNextSession, extendSessionByMinutes, shiftSessionByMinutes, willSessionsOverlap } from "@/lib/session-transition";
 import { useCrossPageSync } from "@/hooks/use-cross-page-sync";
+import { SessionExtensionDialog } from "@/components/queue/session-extension-dialog";
 
 const getStatusBadge = (status: QueueItem['status']) => {
     switch (status) {
@@ -112,7 +113,10 @@ export default function LiveQueuePage() {
 
     const [isReasonDialogOpen, setReasonDialogOpen] = useState(false);
     const [patientToCall, setPatientToCall] = useState<string | null>(null);
-    
+
+    const [isExtensionDialogOpen, setExtensionDialogOpen] = useState(false);
+    const [hasShownExtensionDialog, setHasShownExtensionDialog] = useState(false);
+
     const { get, post } = useFetch();
     const [clinicId, setClinicId] = useState<string | null>(null);
 
@@ -214,17 +218,20 @@ export default function LiveQueuePage() {
         const checkSessionTransitionInterval = setInterval(async () => {
             const transitionInfo = checkSessionTransition(sessionConfigs, previousSession);
 
-            // Show 5-minute warning before session ends
+            // Show extension dialog 5 minutes before session ends
             const minutesUntilSessionEnds = getMinutesUntilCurrentSessionEnds(sessionConfigs);
-            if (minutesUntilSessionEnds === 5 && currentSession) {
+            if (minutesUntilSessionEnds === 5 && currentSession && !hasShownExtensionDialog) {
                 const waitingCount = doctorQueue.filter(q => q.status === 'Waiting').length;
                 if (waitingCount > 0) {
-                    toast({
-                        title: "⏰ Session Ending in 5 Minutes",
-                        description: `${currentSession.name} session ends soon. ${waitingCount} patients still waiting. Please end session manually.`,
-                        duration: 10000
-                    });
+                    // Show extension dialog instead of just a warning
+                    setExtensionDialogOpen(true);
+                    setHasShownExtensionDialog(true);
                 }
+            }
+
+            // Reset extension dialog flag when session changes
+            if (transitionInfo.currentSession?.name !== currentSession?.name) {
+                setHasShownExtensionDialog(false);
             }
 
             if (transitionInfo.isTransitioning) {
@@ -427,9 +434,62 @@ export default function LiveQueuePage() {
         }
     }
 
+    const handleExtendSession = async () => {
+        if (!currentSession) return;
+
+        try {
+            // Extend current session by 30 minutes
+            const extendedSession = extendSessionByMinutes(currentSession, 30);
+
+            // Check if we need to shift next session
+            const nextSession = getNextSession(sessionConfigs);
+            let updatedConfigs = sessionConfigs.map(session => {
+                if (session.name === currentSession.name) {
+                    return extendedSession;
+                }
+                return session;
+            });
+
+            // If overlapping with next session, shift it too
+            if (nextSession && willSessionsOverlap(currentSession, nextSession, 30)) {
+                const shiftedNextSession = shiftSessionByMinutes(nextSession, 30);
+                updatedConfigs = updatedConfigs.map(session => {
+                    if (session.name === nextSession.name) {
+                        return shiftedNextSession;
+                    }
+                    return session;
+                });
+
+                toast({
+                    title: "✅ Sessions Extended",
+                    description: `${currentSession.name} extended to ${extendedSession.end}. ${nextSession.name} shifted to ${shiftedNextSession.start} - ${shiftedNextSession.end}`,
+                    duration: 8000
+                });
+            } else {
+                toast({
+                    title: "✅ Session Extended",
+                    description: `${currentSession.name} extended to ${extendedSession.end}`,
+                    duration: 5000
+                });
+            }
+
+            // Update session configs in state
+            setSessionConfigs(updatedConfigs);
+            setCurrentSession(extendedSession);
+
+        } catch (error) {
+            console.error('Error extending session:', error);
+            toast({
+                title: 'Error',
+                description: 'Failed to extend session',
+                variant: 'destructive'
+            });
+        }
+    };
+
     const handleEndSession = async () => {
         if (!selectedDoctorId || !currentSession || !clinicId) return;
-        
+
         try {
             const response = await post('/api/sessions/end', { doctorId: selectedDoctorId, sessionName: currentSession.name });
             if (!response) return;
@@ -487,6 +547,15 @@ Session Summary for ${selectedDoctor?.name}:
                 isOpen={isReasonDialogOpen}
                 onOpenChange={setReasonDialogOpen}
                 onSubmit={handleConfirmReason}
+            />
+            <SessionExtensionDialog
+                isOpen={isExtensionDialogOpen}
+                onOpenChange={setExtensionDialogOpen}
+                currentSession={currentSession}
+                nextSession={getNextSession(sessionConfigs)}
+                waitingPatientsCount={doctorQueue.filter(q => q.status === 'Waiting').length}
+                onExtend={handleExtendSession}
+                onEndSession={handleEndSession}
             />
             <Card>
                 <CardHeader>

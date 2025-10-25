@@ -114,6 +114,51 @@ export function getMinutesUntilCurrentSessionEnds(sessionConfigs: SessionConfig[
   return minutesRemaining > 0 ? minutesRemaining : 0;
 }
 
+export function extendSessionByMinutes(session: SessionConfig, minutes: number): SessionConfig {
+  const [endHour, endMinute] = session.end.split(':').map(Number);
+  const totalMinutes = endHour * 60 + endMinute + minutes;
+  const newEndHour = Math.floor(totalMinutes / 60);
+  const newEndMinute = totalMinutes % 60;
+
+  return {
+    ...session,
+    end: `${String(newEndHour).padStart(2, '0')}:${String(newEndMinute).padStart(2, '0')}`
+  };
+}
+
+export function shiftSessionByMinutes(session: SessionConfig, minutes: number): SessionConfig {
+  const [startHour, startMinute] = session.start.split(':').map(Number);
+  const [endHour, endMinute] = session.end.split(':').map(Number);
+
+  const newStartMinutes = startHour * 60 + startMinute + minutes;
+  const newEndMinutes = endHour * 60 + endMinute + minutes;
+
+  const newStartHour = Math.floor(newStartMinutes / 60);
+  const newStartMinute = newStartMinutes % 60;
+  const newEndHour = Math.floor(newEndMinutes / 60);
+  const newEndMinute = newEndMinutes % 60;
+
+  return {
+    ...session,
+    start: `${String(newStartHour).padStart(2, '0')}:${String(newStartMinute).padStart(2, '0')}`,
+    end: `${String(newEndHour).padStart(2, '0')}:${String(newEndMinute).padStart(2, '0')}`
+  };
+}
+
+export function willSessionsOverlap(
+  currentSession: SessionConfig,
+  nextSession: SessionConfig,
+  extensionMinutes: number
+): boolean {
+  const [currentEndHour, currentEndMinute] = currentSession.end.split(':').map(Number);
+  const [nextStartHour, nextStartMinute] = nextSession.start.split(':').map(Number);
+
+  const extendedEndMinutes = currentEndHour * 60 + currentEndMinute + extensionMinutes;
+  const nextStartMinutes = nextStartHour * 60 + nextStartMinute;
+
+  return extendedEndMinutes > nextStartMinutes;
+}
+
 export function formatTimeUntilNextSession(minutes: number | null): string {
   if (!minutes) return 'No upcoming session';
 
