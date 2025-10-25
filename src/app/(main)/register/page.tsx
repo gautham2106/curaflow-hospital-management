@@ -353,7 +353,14 @@ export default function VisitRegisterPage() {
             className="cursor-pointer hover:bg-muted/50"
         >
             <TableCell className="font-mono">{record.token_number}</TableCell>
-            <TableCell>{record.checkInTime ? format(record.checkInTime, 'h:mm a') : 'N/A'}</TableCell>
+            <TableCell>
+                <div className="text-sm">
+                    <div className="font-medium">{format(record.date, 'MMM dd, yyyy')}</div>
+                    <div className="text-xs text-muted-foreground">
+                        {record.checkInTime ? `Checked in: ${format(record.checkInTime, 'h:mm a')}` : 'Not checked in'}
+                    </div>
+                </div>
+            </TableCell>
             <TableCell>
                 <div className="font-medium">{record.patients?.name || 'N/A'}</div>
                 <div className="text-xs text-muted-foreground">{record.patients?.phone || 'N/A'}</div>
@@ -371,6 +378,8 @@ export default function VisitRegisterPage() {
                     <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-4 text-sm">
                         <div className="space-y-1">
                            <h4 className="font-semibold mb-2">Visit Details</h4>
+                            <p><strong>Booked:</strong> {format(record.date, 'MMM dd, yyyy')} at {record.session}</p>
+                            {record.checkInTime ? <p><strong>Checked in:</strong> {format(record.checkInTime, 'h:mm:ss a')}</p> : <p><strong>Status:</strong> Not checked in yet</p>}
                             {record.called_time ? <p><strong>Called:</strong> {format(record.called_time, 'h:mm:ss a')}</p> : null}
                             {record.completed_time ? <p><strong>Completed:</strong> {format(record.completed_time, 'h:mm:ss a')}</p> : null}
                             {record.completed_time && record.called_time ? <p><strong>Consultation:</strong> {`${Math.floor((new Date(record.completed_time).getTime() - new Date(record.called_time).getTime()) / 60000)} mins`}</p> : null}
@@ -508,7 +517,7 @@ export default function VisitRegisterPage() {
                       <TableHeader>
                           <TableRow>
                               <TableHead onClick={() => handleSort('token_number')} className="w-[120px] cursor-pointer">Token</TableHead>
-                              <TableHead onClick={() => handleSort('check_in_time')} className="w-[120px] cursor-pointer">Time</TableHead>
+                              <TableHead onClick={() => handleSort('date')} className="w-[140px] cursor-pointer">Booked Date & Time</TableHead>
                               <TableHead onClick={() => handleSort('patient_name')} className="cursor-pointer">Patient</TableHead>
                               <TableHead onClick={() => handleSort('doctor_name')} className="cursor-pointer">Doctor</TableHead>
                               <TableHead onClick={() => handleSort('session')} className="cursor-pointer">Session</TableHead>
@@ -539,7 +548,10 @@ export default function VisitRegisterPage() {
                                           </div>
                                           <div className="text-right">
                                               <p className="font-mono text-lg font-semibold text-primary">#{record.token_number}</p>
-                                              <p className="text-xs text-muted-foreground">{record.checkInTime ? format(record.checkInTime, 'h:mm a') : 'N/A'}</p>
+                                              <p className="text-xs text-muted-foreground">{format(record.date, 'MMM dd, yyyy')}</p>
+                                              <p className="text-xs text-muted-foreground">
+                                                  {record.checkInTime ? `Checked in: ${format(record.checkInTime, 'h:mm a')}` : 'Not checked in'}
+                                              </p>
                                           </div>
                                       </div>
                                   </AccordionTrigger>
