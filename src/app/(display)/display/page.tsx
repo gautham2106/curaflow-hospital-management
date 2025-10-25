@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { format, differenceInDays, parseISO, isBefore, formatDistanceToNowStrict } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Calendar, Clock, Loader2 } from 'lucide-react';
+import { Calendar, Clock, Loader2, Users, ArrowRight, AlertCircle } from 'lucide-react';
 import Image from 'next/image';
 import useEmblaCarousel from 'embla-carousel-react'
 import { useToast } from '@/hooks/use-toast';
@@ -199,6 +199,176 @@ const getStatusForDoctor = (doctorName: string, queue: QueueItem[], currentSessi
   return { nowServing, next, waitingList };
 };
 
+
+// Mobile-optimized comprehensive queue display
+function MobileQueueDisplay({ doctor, highlightToken, queue, currentSession, sessionConfigs, currentTime }: { 
+  doctor: Doctor, 
+  highlightToken?: number, 
+  queue: QueueItem[], 
+  currentSession?: string | null,
+  sessionConfigs: SessionConfig[],
+  currentTime: Date
+}) {
+  const { nowServing, next, waitingList } = getStatusForDoctor(doctor.name, queue, currentSession);
+  const sessionConfig = sessionConfigs.find(s => s.name === currentSession);
+  
+  // Calculate queue position for highlighted token
+  const highlightedPosition = highlightToken ? 
+    waitingList.findIndex(item => item.tokenNumber === highlightToken) + 1 : -1;
+  
+  // Calculate session status
+  const isSessionActive = sessionConfig && currentTime;
+  const sessionStartTime = sessionConfig ? 
+    new Date(new Date().setHours(Number(sessionConfig.start.split(':')[0]), Number(sessionConfig.start.split(':')[1]))) : null;
+  const sessionEndTime = sessionConfig ? 
+    new Date(new Date().setHours(Number(sessionConfig.end.split(':')[0]), Number(sessionConfig.end.split(':')[1]))) : null;
+  
+  const isSessionStarted = sessionStartTime && currentTime >= sessionStartTime;
+  const isSessionEnded = sessionEndTime && currentTime >= sessionEndTime;
+  
+  return (
+    <div className="w-full max-w-md mx-auto p-4 space-y-6">
+      {/* Header */}
+      <div className="text-center space-y-2">
+        <h1 className="text-2xl font-bold text-gray-800">{doctor.name}</h1>
+        <p className="text-lg text-gray-600">{doctor.specialty}</p>
+        <Badge 
+          className={cn(
+            "text-sm",
+            doctor.status === 'Available' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          )}
+        >
+          {doctor.status}
+        </Badge>
+      </div>
+
+      {/* Session Status */}
+      <Card className="p-4">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-semibold flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            Session Status
+          </h3>
+          <Badge variant={isSessionActive && isSessionStarted && !isSessionEnded ? 'default' : 'secondary'}>
+            {isSessionEnded ? 'Ended' : isSessionStarted ? 'Active' : 'Not Started'}
+          </Badge>
+        </div>
+        {sessionConfig && (
+          <div className="space-y-1 text-sm text-gray-600">
+            <p><strong>Session:</strong> {currentSession}</p>
+            <p><strong>Time:</strong> {sessionConfig.start} - {sessionConfig.end}</p>
+            {isSessionStarted && !isSessionEnded && (
+              <p className="text-green-600 font-medium">Session is currently active</p>
+            )}
+          </div>
+        )}
+      </Card>
+
+      {/* Current Token */}
+      <Card className="p-6">
+        <div className="text-center space-y-3">
+          <h3 className="text-lg font-semibold text-gray-700">NOW SERVING</h3>
+          <div className={cn(
+            "text-6xl font-extrabold",
+            nowServing ? 'text-green-600' : 'text-gray-400',
+            highlightToken === nowServing?.tokenNumber && 'animate-pulse'
+          )}>
+            {nowServing ? `#${nowServing.tokenNumber}` : '---'}
+          </div>
+          {nowServing && (
+            <p className="text-sm text-gray-600">
+              Patient: {nowServing.patientName}
+            </p>
+          )}
+        </div>
+      </Card>
+
+      {/* Next Token */}
+      <Card className="p-6">
+        <div className="text-center space-y-3">
+          <h3 className="text-lg font-semibold text-gray-700">NEXT</h3>
+          <div className={cn(
+            "text-4xl font-bold",
+            next ? 'text-blue-600' : 'text-gray-400',
+            highlightToken === next?.tokenNumber && 'animate-pulse'
+          )}>
+            {next ? `#${next.tokenNumber}` : '---'}
+          </div>
+          {next && (
+            <p className="text-sm text-gray-600">
+              Patient: {next.patientName}
+            </p>
+          )}
+        </div>
+      </Card>
+
+      {/* Your Position (if highlighted token) */}
+      {highlightToken && highlightedPosition > 0 && (
+        <Card className="p-6 border-blue-200 bg-blue-50">
+          <div className="text-center space-y-3">
+            <h3 className="text-lg font-semibold text-blue-800 flex items-center justify-center gap-2">
+              <Users className="h-5 w-5" />
+              YOUR POSITION
+            </h3>
+            <div className="text-4xl font-bold text-blue-600">
+              #{highlightToken}
+            </div>
+            <p className="text-sm text-blue-700">
+              You are #{highlightedPosition} in the queue
+            </p>
+            <p className="text-xs text-blue-600">
+              {highlightedPosition === 1 ? 'You are next!' : `${highlightedPosition - 1} people ahead of you`}
+            </p>
+          </div>
+        </Card>
+      )}
+
+      {/* Waiting Queue */}
+      <Card className="p-4">
+        <h3 className="font-semibold mb-3 flex items-center gap-2">
+          <Users className="h-4 w-4" />
+          Waiting Queue ({waitingList.length})
+        </h3>
+        {waitingList.length > 0 ? (
+          <div className="grid grid-cols-3 gap-2">
+            {waitingList.slice(0, 9).map((item, index) => (
+              <Badge 
+                key={item.id} 
+                variant={highlightToken === item.tokenNumber ? 'default' : 'outline'} 
+                className={cn(
+                  "text-center p-2 text-sm",
+                  highlightToken === item.tokenNumber && "bg-blue-600 text-white animate-pulse"
+                )}
+              >
+                #{item.tokenNumber}
+              </Badge>
+            ))}
+            {waitingList.length > 9 && (
+              <Badge variant="outline" className="text-center p-2 text-sm">
+                +{waitingList.length - 9} more
+              </Badge>
+            )}
+          </div>
+        ) : (
+          <p className="text-center text-gray-500 py-4">No one waiting</p>
+        )}
+      </Card>
+
+      {/* Current Time */}
+      <Card className="p-4">
+        <div className="text-center">
+          <h3 className="font-semibold mb-2">Current Time</h3>
+          <p className="text-2xl font-bold text-gray-800">
+            {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </p>
+          <p className="text-sm text-gray-600">
+            {currentTime.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}
+          </p>
+        </div>
+      </Card>
+    </div>
+  );
+}
 
 function DoctorDisplayCard({ doctor, highlightToken, queue, currentSession }: { doctor: Doctor, highlightToken?: number, queue: QueueItem[], currentSession?: string | null }) {
     const { nowServing, next, waitingList } = getStatusForDoctor(doctor.name, queue, currentSession);
@@ -454,7 +624,14 @@ function DisplayView() {
       if (doctor) {
           return (
             <div className="w-full max-w-2xl mx-auto p-4 flex items-center justify-center min-h-screen">
-                <DoctorDisplayCard doctor={doctor} highlightToken={tokenToHighlight} queue={queue} currentSession={currentSession} />
+                <MobileQueueDisplay 
+                  doctor={doctor} 
+                  highlightToken={tokenToHighlight} 
+                  queue={queue} 
+                  currentSession={currentSession}
+                  sessionConfigs={sessionConfigs}
+                  currentTime={currentTime}
+                />
             </div>
           );
       }
@@ -466,7 +643,19 @@ function DisplayView() {
       <main className="flex-1 flex flex-col p-4 md:p-6 lg:p-8">
         {doctorsForTv.length > 0 ? (
           <div className="grid gap-8 w-full h-full grid-cols-1">
-            <DoctorDisplayCard doctor={doctorsForTv[currentDoctorIndex]} queue={queue} currentSession={currentSession} />
+            {/* Use mobile display for smaller screens, desktop display for larger screens */}
+            <div className="block md:hidden">
+              <MobileQueueDisplay 
+                doctor={doctorsForTv[currentDoctorIndex]} 
+                queue={queue} 
+                currentSession={currentSession}
+                sessionConfigs={sessionConfigs}
+                currentTime={currentTime}
+              />
+            </div>
+            <div className="hidden md:block">
+              <DoctorDisplayCard doctor={doctorsForTv[currentDoctorIndex]} queue={queue} currentSession={currentSession} />
+            </div>
           </div>
         ) : (
           <div className="flex flex-1 items-center justify-center h-full">
