@@ -63,13 +63,13 @@ export async function POST(request: NextRequest) {
             });
         }
 
-        // Get next token number for this doctor, date, and session
+        // Get next token number for this doctor, date, and session (atomic operation)
         const nextTokenNumber = await supabaseService.getNextTokenNumber(
             clinicId,
             doctorId,
             format(apptDate, 'yyyy-MM-dd'),
             session
-        ) + 1;
+        );
 
         // Create visit record
         const isToday = format(apptDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');

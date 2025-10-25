@@ -19,11 +19,9 @@ import { useCrossPageSync } from '@/hooks/use-cross-page-sync';
 function AdCarousel({ resources, orientation }: { resources: AdResource[], orientation: 'vertical' | 'horizontal' }) {
     const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, axis: orientation === 'vertical' ? 'y' : 'x' });
     const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
-    const [imageAspectRatios, setImageAspectRatios] = useState<Record<string, number>>({});
-
 
     useEffect(() => {
-        if (!emblaApi || resources.length === 0) return;
+        if (!emblaApi || !resources || resources.length === 0) return;
 
         let timer: NodeJS.Timeout;
 
@@ -63,7 +61,6 @@ function AdCarousel({ resources, orientation }: { resources: AdResource[], orien
             }
         });
 
-
         return () => {
             clearTimeout(timer);
             emblaApi.off('select', onSelect);
@@ -72,68 +69,48 @@ function AdCarousel({ resources, orientation }: { resources: AdResource[], orien
             });
         };
     }, [emblaApi, resources]);
-    
+
+    // Early return if no resources
+    if (!resources || resources.length === 0) {
+        return (
+            <div className="h-full w-full overflow-hidden rounded-lg shadow-lg bg-card flex items-center justify-center">
+                <p className="text-muted-foreground">No ads available</p>
+            </div>
+        );
+    }
+
     return (
         <div className="h-full w-full overflow-hidden rounded-lg shadow-lg bg-card" ref={emblaRef}>
             <div className={cn("flex h-full", orientation === 'vertical' ? 'flex-col' : 'flex-row')}>
-                {resources.map((res, index) => {
-                    const aspectRatio = imageAspectRatios[res.id];
-                    
-                    return (
-                        <div key={res.id} className="flex-[0_0_100%] relative min-h-0 bg-black flex items-center justify-center">
+                {resources.map((res, index) => (
+                    <div key={res.id} className="flex-[0_0_100%] relative min-h-0 bg-black flex items-center justify-center p-2">
+                        <div className="relative w-full h-full flex items-center justify-center">
                             {res.type === 'image' && (
-                                <div className="relative w-full h-full flex items-center justify-center">
-                                    <img 
-                                        src={res.url} 
-                                        alt={res.title} 
-                                        className="max-w-full max-h-full object-contain" 
-                                        style={{
-                                            width: 'auto',
-                                            height: 'auto',
-                                            maxWidth: '100%',
-                                            maxHeight: '100%'
-                                        }}
-                                        onLoad={(e) => {
-                                            const img = e.target as HTMLImageElement;
-                                            const aspectRatio = img.naturalWidth / img.naturalHeight;
-                                            setImageAspectRatios(prev => ({
-                                                ...prev,
-                                                [res.id]: aspectRatio
-                                            }));
-                                        }}
-                                    />
-                                </div>
+                                <img 
+                                    src={res.url} 
+                                    alt={res.title} 
+                                    className="max-w-full max-h-full object-contain rounded-lg" 
+                                />
                             )}
                             {res.type === 'video' && (
-                                <div className="relative w-full h-full flex items-center justify-center">
-                                    <video
-                                        ref={el => videoRefs.current[index] = el}
-                                        src={res.url}
-                                        muted
-                                        playsInline
-                                        className="max-w-full max-h-full object-contain"
-                                        preload="metadata"
-                                        style={{
-                                            width: 'auto',
-                                            height: 'auto',
-                                            maxWidth: '100%',
-                                            maxHeight: '100%'
-                                        }}
-                                    />
-                                </div>
+                                <video
+                                    ref={el => videoRefs.current[index] = el}
+                                    src={res.url}
+                                    muted
+                                    playsInline
+                                    className="max-w-full max-h-full object-contain rounded-lg"
+                                    preload="metadata"
+                                />
                             )}
-                            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent text-white">
-                               <h3 className="font-bold text-lg">{res.title}</h3>
-                               <p className="text-xs">{res.duration} seconds</p>
-                               {aspectRatio && (
-                                   <p className="text-xs opacity-75">
-                                       Aspect Ratio: {aspectRatio.toFixed(2)}:1
-                                   </p>
-                               )}
-                            </div>
                         </div>
-                    );
-                })}
+                        
+                        {/* Overlay with content info */}
+                        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent text-white rounded-b-lg">
+                           <h3 className="font-bold text-lg">{res.title}</h3>
+                           <p className="text-xs">{res.duration} seconds</p>
+                        </div>
+                    </div>
+                ))}
             </div>
         </div>
     );
@@ -215,6 +192,162 @@ function PreSessionScreen({ sessionStartTime, tokenNumber }: { sessionStartTime:
     );
 }
 
+// --- Mobile Display Component ---
+function MobileQueueDisplay({ 
+  doctor, 
+  highlightToken, 
+  queue, 
+  currentSession, 
+  sessionConfigs, 
+  currentTime 
+}: { 
+  doctor: Doctor, 
+  highlightToken?: number, 
+  queue: QueueItem[], 
+  currentSession?: string | null,
+  sessionConfigs: SessionConfig[],
+  currentTime: Date | null
+}) {
+  const { nowServing, next, waitingList } = getStatusForDoctor(doctor.name, queue, currentSession);
+  const isHighlighted = (token: number) => highlightToken === token;
+
+  // Check if this is a future appointment
+  const isFutureAppointment = highlightToken && !nowServing && !next && !waitingList.find(item => item.tokenNumber === highlightToken);
+  
+  if (isFutureAppointment) {
+    // Show future appointment details
+    const sessionConfig = sessionConfigs.find(s => s.name === currentSession);
+    const sessionStartTime = sessionConfig ? new Date(`${new Date().toISOString().split('T')[0]}T${sessionConfig.start_time}`) : new Date();
+    
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <div className="max-w-md mx-auto">
+          <FutureAppointmentScreen 
+            date={sessionStartTime}
+            doctorName={doctor.name}
+            tokenNumber={highlightToken!}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Check if session hasn't started yet
+  const sessionConfig = sessionConfigs.find(s => s.name === currentSession);
+  const sessionStartTime = sessionConfig ? new Date(`${new Date().toISOString().split('T')[0]}T${sessionConfig.start_time}`) : new Date();
+  const isPreSession = currentTime && isBefore(currentTime, sessionStartTime);
+  
+  if (isPreSession) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 p-4">
+        <div className="max-w-md mx-auto">
+          <PreSessionScreen 
+            sessionStartTime={sessionStartTime}
+            tokenNumber={highlightToken || 0}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Regular mobile queue display
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-4">
+      <div className="max-w-md mx-auto space-y-4">
+        {/* Header */}
+        <Card className="p-4 text-center">
+          <h1 className="text-2xl font-bold text-gray-800">{doctor.name}</h1>
+          <p className="text-lg text-gray-600">{doctor.specialty}</p>
+          <Badge 
+            className={cn(
+              "mt-2 text-sm",
+              doctor.status === 'Available' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+            )}
+          >
+            {doctor.status}
+          </Badge>
+        </Card>
+
+        {/* Current Token */}
+        <Card className="p-6">
+          <div className="text-center">
+            <h3 className="text-lg font-semibold mb-4">NOW SERVING</h3>
+            {doctor.status === 'Available' ? (
+              <div className={cn(
+                "text-6xl font-bold",
+                isHighlighted(nowServing?.tokenNumber ?? -1) && "text-green-600 animate-pulse"
+              )}>
+                {nowServing?.tokenNumber ? `#${nowServing.tokenNumber}` : '---'}
+              </div>
+            ) : (
+              <div className="text-3xl font-bold text-red-600">DOCTOR UNAVAILABLE</div>
+            )}
+          </div>
+        </Card>
+
+        {/* Next Token */}
+        <Card className="p-4">
+          <div className="text-center">
+            <h3 className="text-lg font-semibold mb-2">NEXT</h3>
+            {doctor.status === 'Available' ? (
+              <div className={cn(
+                "text-4xl font-bold",
+                isHighlighted(next?.tokenNumber ?? -1) && "text-blue-600 animate-pulse"
+              )}>
+                {next?.tokenNumber ? `#${next.tokenNumber}` : '---'}
+              </div>
+            ) : (
+              <div className="text-xl font-bold text-red-600">NO QUEUE</div>
+            )}
+          </div>
+        </Card>
+
+        {/* Waiting List */}
+        <Card className="p-4">
+          <h3 className="text-lg font-semibold mb-3 text-center">WAITING</h3>
+          {doctor.status === 'Available' ? (
+            waitingList.length > 0 ? (
+              <div className="flex flex-wrap gap-2 justify-center">
+                {waitingList.map(item => (
+                  <Badge 
+                    key={item.id} 
+                    variant={isHighlighted(item.tokenNumber) ? 'default' : 'outline'} 
+                    className={cn(
+                      "text-lg px-3 py-1",
+                      isHighlighted(item.tokenNumber) && "bg-blue-600 text-white animate-pulse"
+                    )}
+                  >
+                    #{item.tokenNumber}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-gray-500">Queue is empty</p>
+            )
+          ) : (
+            <p className="text-center text-red-500 font-medium">Doctor is unavailable</p>
+          )}
+        </Card>
+
+        {/* Current Time */}
+        {currentTime && (
+          <Card className="p-4">
+            <div className="text-center">
+              <h3 className="font-semibold mb-2">Current Time</h3>
+              <p className="text-2xl font-bold text-gray-800">
+                {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </p>
+              <p className="text-sm text-gray-600">
+                {currentTime.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}
+              </p>
+            </div>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // --- Main Display Components ---
 
 const getStatusForDoctor = (doctorName: string, queue: QueueItem[], currentSession?: string) => {
@@ -240,195 +373,6 @@ const getStatusForDoctor = (doctorName: string, queue: QueueItem[], currentSessi
 };
 
 
-// Mobile-optimized comprehensive queue display
-function MobileQueueDisplay({ doctor, highlightToken, queue, currentSession, sessionConfigs, currentTime }: { 
-  doctor: Doctor, 
-  highlightToken?: number, 
-  queue: QueueItem[], 
-  currentSession?: string | null,
-  sessionConfigs: SessionConfig[],
-  currentTime: Date
-}) {
-  const { nowServing, next, waitingList } = getStatusForDoctor(doctor.name, queue, currentSession);
-  const sessionConfig = sessionConfigs.find(s => s.name === currentSession);
-  
-  // Calculate queue position for highlighted token
-  const highlightedPosition = highlightToken ? 
-    waitingList.findIndex(item => item.tokenNumber === highlightToken) + 1 : -1;
-  
-  // Calculate session status
-  const isSessionActive = sessionConfig && currentTime;
-  const sessionStartTime = sessionConfig ? 
-    new Date(new Date().setHours(Number(sessionConfig.start.split(':')[0]), Number(sessionConfig.start.split(':')[1]))) : null;
-  const sessionEndTime = sessionConfig ? 
-    new Date(new Date().setHours(Number(sessionConfig.end.split(':')[0]), Number(sessionConfig.end.split(':')[1]))) : null;
-  
-  const isSessionStarted = sessionStartTime && currentTime >= sessionStartTime;
-  const isSessionEnded = sessionEndTime && currentTime >= sessionEndTime;
-  
-  return (
-    <div className="w-full max-w-md mx-auto p-4 space-y-6">
-      {/* Header */}
-      <div className="text-center space-y-2">
-        <h1 className="text-2xl font-bold text-gray-800">{doctor.name}</h1>
-        <p className="text-lg text-gray-600">{doctor.specialty}</p>
-        <Badge 
-          className={cn(
-            "text-sm",
-            doctor.status === 'Available' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-          )}
-        >
-          {doctor.status}
-        </Badge>
-      </div>
-
-      {/* Session Status */}
-      <Card className="p-4">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="font-semibold flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            Session Status
-          </h3>
-          <Badge variant={isSessionActive && isSessionStarted && !isSessionEnded ? 'default' : 'secondary'}>
-            {isSessionEnded ? 'Ended' : isSessionStarted ? 'Active' : 'Not Started'}
-          </Badge>
-        </div>
-        {sessionConfig && (
-          <div className="space-y-1 text-sm text-gray-600">
-            <p><strong>Session:</strong> {currentSession}</p>
-            <p><strong>Time:</strong> {sessionConfig.start} - {sessionConfig.end}</p>
-            {isSessionStarted && !isSessionEnded && (
-              <p className="text-green-600 font-medium">Session is currently active</p>
-            )}
-          </div>
-        )}
-      </Card>
-
-      {/* Current Token */}
-      <Card className="p-6">
-        <div className="text-center space-y-3">
-          <h3 className="text-lg font-semibold text-gray-700">NOW SERVING</h3>
-          {doctor.status === 'Available' ? (
-            <>
-              <div className={cn(
-                "text-6xl font-extrabold",
-                nowServing ? 'text-green-600' : 'text-gray-400',
-                highlightToken === nowServing?.tokenNumber && 'animate-pulse'
-              )}>
-                {nowServing ? `#${nowServing.tokenNumber}` : '---'}
-              </div>
-              {nowServing && (
-                <p className="text-sm text-gray-600">
-                  Patient: {nowServing.patientName}
-                </p>
-              )}
-            </>
-          ) : (
-            <div className="text-4xl font-bold text-red-600">
-              DOCTOR UNAVAILABLE
-            </div>
-          )}
-        </div>
-      </Card>
-
-      {/* Next Token */}
-      <Card className="p-6">
-        <div className="text-center space-y-3">
-          <h3 className="text-lg font-semibold text-gray-700">NEXT</h3>
-          {doctor.status === 'Available' ? (
-            <>
-              <div className={cn(
-                "text-4xl font-bold",
-                next ? 'text-blue-600' : 'text-gray-400',
-                highlightToken === next?.tokenNumber && 'animate-pulse'
-              )}>
-                {next ? `#${next.tokenNumber}` : '---'}
-              </div>
-              {next && (
-                <p className="text-sm text-gray-600">
-                  Patient: {next.patientName}
-                </p>
-              )}
-            </>
-          ) : (
-            <div className="text-2xl font-bold text-red-500">
-              NO QUEUE
-            </div>
-          )}
-        </div>
-      </Card>
-
-      {/* Your Position (if highlighted token) */}
-      {highlightToken && highlightedPosition > 0 && (
-        <Card className="p-6 border-blue-200 bg-blue-50">
-          <div className="text-center space-y-3">
-            <h3 className="text-lg font-semibold text-blue-800 flex items-center justify-center gap-2">
-              <Users className="h-5 w-5" />
-              YOUR POSITION
-            </h3>
-            <div className="text-4xl font-bold text-blue-600">
-              #{highlightToken}
-            </div>
-            <p className="text-sm text-blue-700">
-              You are #{highlightedPosition} in the queue
-            </p>
-            <p className="text-xs text-blue-600">
-              {highlightedPosition === 1 ? 'You are next!' : `${highlightedPosition - 1} people ahead of you`}
-            </p>
-          </div>
-        </Card>
-      )}
-
-      {/* Waiting Queue */}
-      <Card className="p-4">
-        <h3 className="font-semibold mb-3 flex items-center gap-2">
-          <Users className="h-4 w-4" />
-          Waiting Queue ({doctor.status === 'Available' ? waitingList.length : 0})
-        </h3>
-        {doctor.status === 'Available' ? (
-          waitingList.length > 0 ? (
-            <div className="grid grid-cols-3 gap-2">
-              {waitingList.slice(0, 9).map((item, index) => (
-                <Badge 
-                  key={item.id} 
-                  variant={highlightToken === item.tokenNumber ? 'default' : 'outline'} 
-                  className={cn(
-                    "text-center p-2 text-sm",
-                    highlightToken === item.tokenNumber && "bg-blue-600 text-white animate-pulse"
-                  )}
-                >
-                  #{item.tokenNumber}
-                </Badge>
-              ))}
-              {waitingList.length > 9 && (
-                <Badge variant="outline" className="text-center p-2 text-sm">
-                  +{waitingList.length - 9} more
-                </Badge>
-              )}
-            </div>
-          ) : (
-            <p className="text-center text-gray-500 py-4">No one waiting</p>
-          )
-        ) : (
-          <p className="text-center text-red-500 py-4 font-medium">Doctor is unavailable</p>
-        )}
-      </Card>
-
-      {/* Current Time */}
-      <Card className="p-4">
-        <div className="text-center">
-          <h3 className="font-semibold mb-2">Current Time</h3>
-          <p className="text-2xl font-bold text-gray-800">
-            {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </p>
-          <p className="text-sm text-gray-600">
-            {currentTime.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}
-          </p>
-        </div>
-      </Card>
-    </div>
-  );
-}
 
 function DoctorDisplayCard({ doctor, highlightToken, queue, currentSession }: { doctor: Doctor, highlightToken?: number, queue: QueueItem[], currentSession?: string | null }) {
     const { nowServing, next, waitingList } = getStatusForDoctor(doctor.name, queue, currentSession);
