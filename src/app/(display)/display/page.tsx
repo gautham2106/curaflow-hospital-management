@@ -467,6 +467,7 @@ function DisplayView() {
   const [currentDoctorIndex, setCurrentDoctorIndex] = useState(0);
   const [hospitalName, setHospitalName] = useState('YOUR HOSPITAL NAME');
   const [isLoading, setIsLoading] = useState(true);
+  const [adMode, setAdMode] = useState<'sidebar' | 'fullscreen' | 'split'>('sidebar'); // MOVED TO TOP
   const [currentSession, setCurrentSession] = useState<string | null>(null);
 
   useEffect(() => {
@@ -646,7 +647,6 @@ function DisplayView() {
   }
 
   const showAds = enableAds && adResources.length > 0;
-  const [adMode, setAdMode] = useState<'sidebar' | 'fullscreen' | 'split'>('sidebar');
   
   const mainContent = (
       <main className="flex-1 flex flex-col p-4 md:p-6 lg:p-8">
