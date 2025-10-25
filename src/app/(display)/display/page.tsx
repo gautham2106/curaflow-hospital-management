@@ -16,17 +16,17 @@ import { useToast } from '@/hooks/use-toast';
 import { useFetch } from '@/hooks/use-api';
 import { useCrossPageSync } from '@/hooks/use-cross-page-sync';
 
-// --- Simplified Ad Carousel Component ---
+// --- Simple Vertical Reels Ad Display ---
 function AdCarousel({ resources, orientation }: { resources: AdResource[], orientation: 'vertical' | 'horizontal' }) {
     const [currentIndex, setCurrentIndex] = useState(0);
 
-    // Simple auto-advance timer
+    // Simple auto-advance timer - only for vertical reels
     useEffect(() => {
         if (!resources || resources.length <= 1) return;
 
         const timer = setInterval(() => {
             setCurrentIndex((prev) => (prev + 1) % resources.length);
-        }, 5000); // Change every 5 seconds
+        }, 4000); // Change every 4 seconds
 
         return () => clearInterval(timer);
     }, [resources]);
@@ -43,14 +43,19 @@ function AdCarousel({ resources, orientation }: { resources: AdResource[], orien
     const currentResource = resources[currentIndex];
 
     return (
-        <div className="h-full w-full overflow-hidden rounded-lg shadow-lg bg-card relative">
-            <div className="relative w-full h-full flex items-center justify-center bg-black">
+        <div className="h-full w-full overflow-hidden rounded-lg shadow-lg bg-black relative">
+            {/* Vertical Reels Container */}
+            <div className="relative w-full h-full flex items-center justify-center">
                 {currentResource.type === 'image' && (
                     <img 
                         src={currentResource.url} 
                         alt={currentResource.title} 
-                        className="w-full h-full object-contain" 
-                        style={{ maxWidth: '100%', maxHeight: '100%' }}
+                        className="w-full h-full object-cover" 
+                        style={{ 
+                            width: '100%', 
+                            height: '100%',
+                            objectFit: 'cover'
+                        }}
                     />
                 )}
                 {currentResource.type === 'video' && (
@@ -60,29 +65,40 @@ function AdCarousel({ resources, orientation }: { resources: AdResource[], orien
                         playsInline
                         autoPlay
                         loop
-                        className="w-full h-full object-contain"
-                        style={{ maxWidth: '100%', maxHeight: '100%' }}
+                        className="w-full h-full object-cover"
+                        style={{ 
+                            width: '100%', 
+                            height: '100%',
+                            objectFit: 'cover'
+                        }}
                     />
                 )}
             </div>
             
-            {/* Simple overlay */}
-            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent text-white">
-                <h3 className="font-bold text-lg">{currentResource.title}</h3>
-                <p className="text-xs">{currentResource.duration} seconds</p>
+            {/* Vertical Reels Overlay */}
+            <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black via-black/50 to-transparent text-white">
+                <h3 className="font-bold text-2xl mb-2">{currentResource.title}</h3>
+                <p className="text-sm opacity-80">{currentResource.duration} seconds</p>
             </div>
 
-            {/* Simple dots indicator */}
+            {/* Vertical Reels Progress Indicator */}
             {resources.length > 1 && (
-                <div className="absolute bottom-2 right-2 flex space-x-1">
+                <div className="absolute top-4 right-4 flex flex-col space-y-2">
                     {resources.map((_, index) => (
                         <div
                             key={index}
-                            className={`w-2 h-2 rounded-full ${
-                                index === currentIndex ? 'bg-white' : 'bg-white/50'
+                            className={`w-1 h-8 rounded-full transition-all duration-300 ${
+                                index === currentIndex ? 'bg-white' : 'bg-white/30'
                             }`}
                         />
                     ))}
+                </div>
+            )}
+
+            {/* Vertical Reels Counter */}
+            {resources.length > 1 && (
+                <div className="absolute top-4 left-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+                    {currentIndex + 1} / {resources.length}
                 </div>
             )}
         </div>
