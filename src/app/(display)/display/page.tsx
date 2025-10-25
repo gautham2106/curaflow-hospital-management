@@ -268,17 +268,25 @@ function MobileQueueDisplay({ doctor, highlightToken, queue, currentSession, ses
       <Card className="p-6">
         <div className="text-center space-y-3">
           <h3 className="text-lg font-semibold text-gray-700">NOW SERVING</h3>
-          <div className={cn(
-            "text-6xl font-extrabold",
-            nowServing ? 'text-green-600' : 'text-gray-400',
-            highlightToken === nowServing?.tokenNumber && 'animate-pulse'
-          )}>
-            {nowServing ? `#${nowServing.tokenNumber}` : '---'}
-          </div>
-          {nowServing && (
-            <p className="text-sm text-gray-600">
-              Patient: {nowServing.patientName}
-            </p>
+          {doctor.status === 'Available' ? (
+            <>
+              <div className={cn(
+                "text-6xl font-extrabold",
+                nowServing ? 'text-green-600' : 'text-gray-400',
+                highlightToken === nowServing?.tokenNumber && 'animate-pulse'
+              )}>
+                {nowServing ? `#${nowServing.tokenNumber}` : '---'}
+              </div>
+              {nowServing && (
+                <p className="text-sm text-gray-600">
+                  Patient: {nowServing.patientName}
+                </p>
+              )}
+            </>
+          ) : (
+            <div className="text-4xl font-bold text-red-600">
+              DOCTOR UNAVAILABLE
+            </div>
           )}
         </div>
       </Card>
@@ -287,17 +295,25 @@ function MobileQueueDisplay({ doctor, highlightToken, queue, currentSession, ses
       <Card className="p-6">
         <div className="text-center space-y-3">
           <h3 className="text-lg font-semibold text-gray-700">NEXT</h3>
-          <div className={cn(
-            "text-4xl font-bold",
-            next ? 'text-blue-600' : 'text-gray-400',
-            highlightToken === next?.tokenNumber && 'animate-pulse'
-          )}>
-            {next ? `#${next.tokenNumber}` : '---'}
-          </div>
-          {next && (
-            <p className="text-sm text-gray-600">
-              Patient: {next.patientName}
-            </p>
+          {doctor.status === 'Available' ? (
+            <>
+              <div className={cn(
+                "text-4xl font-bold",
+                next ? 'text-blue-600' : 'text-gray-400',
+                highlightToken === next?.tokenNumber && 'animate-pulse'
+              )}>
+                {next ? `#${next.tokenNumber}` : '---'}
+              </div>
+              {next && (
+                <p className="text-sm text-gray-600">
+                  Patient: {next.patientName}
+                </p>
+              )}
+            </>
+          ) : (
+            <div className="text-2xl font-bold text-red-500">
+              NO QUEUE
+            </div>
           )}
         </div>
       </Card>
@@ -327,30 +343,34 @@ function MobileQueueDisplay({ doctor, highlightToken, queue, currentSession, ses
       <Card className="p-4">
         <h3 className="font-semibold mb-3 flex items-center gap-2">
           <Users className="h-4 w-4" />
-          Waiting Queue ({waitingList.length})
+          Waiting Queue ({doctor.status === 'Available' ? waitingList.length : 0})
         </h3>
-        {waitingList.length > 0 ? (
-          <div className="grid grid-cols-3 gap-2">
-            {waitingList.slice(0, 9).map((item, index) => (
-              <Badge 
-                key={item.id} 
-                variant={highlightToken === item.tokenNumber ? 'default' : 'outline'} 
-                className={cn(
-                  "text-center p-2 text-sm",
-                  highlightToken === item.tokenNumber && "bg-blue-600 text-white animate-pulse"
-                )}
-              >
-                #{item.tokenNumber}
-              </Badge>
-            ))}
-            {waitingList.length > 9 && (
-              <Badge variant="outline" className="text-center p-2 text-sm">
-                +{waitingList.length - 9} more
-              </Badge>
-            )}
-          </div>
+        {doctor.status === 'Available' ? (
+          waitingList.length > 0 ? (
+            <div className="grid grid-cols-3 gap-2">
+              {waitingList.slice(0, 9).map((item, index) => (
+                <Badge 
+                  key={item.id} 
+                  variant={highlightToken === item.tokenNumber ? 'default' : 'outline'} 
+                  className={cn(
+                    "text-center p-2 text-sm",
+                    highlightToken === item.tokenNumber && "bg-blue-600 text-white animate-pulse"
+                  )}
+                >
+                  #{item.tokenNumber}
+                </Badge>
+              ))}
+              {waitingList.length > 9 && (
+                <Badge variant="outline" className="text-center p-2 text-sm">
+                  +{waitingList.length - 9} more
+                </Badge>
+              )}
+            </div>
+          ) : (
+            <p className="text-center text-gray-500 py-4">No one waiting</p>
+          )
         ) : (
-          <p className="text-center text-gray-500 py-4">No one waiting</p>
+          <p className="text-center text-red-500 py-4 font-medium">Doctor is unavailable</p>
         )}
       </Card>
 
@@ -398,34 +418,46 @@ function DoctorDisplayCard({ doctor, highlightToken, queue, currentSession }: { 
                nowServing ? 'bg-green-100/50 text-green-800' : 'bg-muted'
             )}>
                 <p className="text-lg font-medium">NOW SERVING</p>
-                <p className={cn(
-                    "text-5xl font-extrabold tracking-wider",
-                    isHighlighted(nowServing?.tokenNumber ?? -1) && "text-green-600 animate-pulse"
-                )}>{nowServing?.tokenNumber ? `#${nowServing.tokenNumber}`: '---'}</p>
+                {doctor.status === 'Available' ? (
+                  <p className={cn(
+                      "text-5xl font-extrabold tracking-wider",
+                      isHighlighted(nowServing?.tokenNumber ?? -1) && "text-green-600 animate-pulse"
+                  )}>{nowServing?.tokenNumber ? `#${nowServing.tokenNumber}`: '---'}</p>
+                ) : (
+                  <p className="text-3xl font-bold text-red-600">DOCTOR UNAVAILABLE</p>
+                )}
             </div>
 
             <div className="p-3 rounded-lg text-center bg-blue-100/50 text-blue-800">
                 <p className="font-medium">NEXT</p>
-                <p className={cn(
-                    "text-3xl font-bold",
-                     isHighlighted(next?.tokenNumber ?? -1) && "text-blue-700 animate-pulse"
-                )}>{next?.tokenNumber ? `#${next.tokenNumber}` : '---'}</p>
+                {doctor.status === 'Available' ? (
+                  <p className={cn(
+                      "text-3xl font-bold",
+                       isHighlighted(next?.tokenNumber ?? -1) && "text-blue-700 animate-pulse"
+                  )}>{next?.tokenNumber ? `#${next.tokenNumber}` : '---'}</p>
+                ) : (
+                  <p className="text-xl font-bold text-red-600">NO QUEUE</p>
+                )}
             </div>
             
             <div>
                 <p className="font-medium mb-2 text-center">WAITING</p>
                 <div className="flex flex-wrap items-center justify-center gap-2">
-                    {waitingList.length > 0 ? (
-                        waitingList.map(item => (
-                            <Badge key={item.id} variant={isHighlighted(item.tokenNumber) ? 'default' : 'outline'} className={cn(
-                                "text-lg px-3 py-1",
-                                isHighlighted(item.tokenNumber) && "bg-blue-600 text-white animate-pulse"
-                            )}>
-                                #{item.tokenNumber}
-                            </Badge>
-                        ))
+                    {doctor.status === 'Available' ? (
+                        waitingList.length > 0 ? (
+                            waitingList.map(item => (
+                                <Badge key={item.id} variant={isHighlighted(item.tokenNumber) ? 'default' : 'outline'} className={cn(
+                                    "text-lg px-3 py-1",
+                                    isHighlighted(item.tokenNumber) && "bg-blue-600 text-white animate-pulse"
+                                )}>
+                                    #{item.tokenNumber}
+                                </Badge>
+                            ))
+                        ) : (
+                            <p className="text-muted-foreground text-center w-full">Queue is empty.</p>
+                        )
                     ) : (
-                        <p className="text-muted-foreground text-center w-full">Queue is empty.</p>
+                        <p className="text-red-500 text-center w-full font-medium">Doctor is unavailable</p>
                     )}
                 </div>
             </div>
