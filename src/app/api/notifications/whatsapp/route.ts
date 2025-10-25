@@ -1,5 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Helper function to create TinyURL
+async function createTinyUrl(longUrl: string): Promise<string> {
+    try {
+        const response = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`);
+        const tinyUrl = await response.text();
+        return tinyUrl.startsWith('http') ? tinyUrl : longUrl; // Fallback to original URL if TinyURL fails
+    } catch (error) {
+        console.error('Error creating TinyURL:', error);
+        return longUrl; // Fallback to original URL
+    }
+}
+
 export async function POST(request: NextRequest) {
     const { tokenData, sessionTimeRange, clinicName } = await request.json();
 
@@ -7,10 +19,15 @@ export async function POST(request: NextRequest) {
     const phoneId = '591459790706231';
     const endpointUrl = `https://graph.facebook.com/v22.0/${phoneId}/messages`;
 
-    // Construct the tracking URL
-    const trackingUrl = (typeof window !== 'undefined' && tokenData.clinicId)
-      ? `${window.location.origin}/display?clinicId=${tokenData.clinicId}&doctorId=${tokenData.doctor.id}&date=${new Date(tokenData.date).toISOString().split('T')[0]}&session=${tokenData.session}&tokenId=${tokenData.id}`
-      : `http://localhost:3000/display?clinicId=curaflow-central&doctorId=${tokenData.doctor.id}&date=${new Date(tokenData.date).toISOString().split('T')[0]}&session=${tokenData.session}&tokenId=${tokenData.id}`; // Fallback for server-side
+    // Construct the tracking URL with proper domain
+    const baseUrl = process.env.VERCEL_URL 
+        ? `https://${process.env.VERCEL_URL}` 
+        : 'https://curaflow-saas-5ishsvhl4-gs-projects-13b73890.vercel.app';
+    
+    const longUrl = `${baseUrl}/display?clinicId=${tokenData.clinicId}&doctorId=${tokenData.doctor.id}&date=${new Date(tokenData.date).toISOString().split('T')[0]}&session=${tokenData.session}&tokenId=${tokenData.id}`;
+    
+    // Create TinyURL for the tracking link
+    const trackingUrl = await createTinyUrl(longUrl);
 
     const parameters = [
         { type: 'text', text: tokenData.patientName },

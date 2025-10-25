@@ -355,10 +355,13 @@ export default function VisitRegisterPage() {
             <TableCell className="font-mono">{record.token_number}</TableCell>
             <TableCell>{record.check_in_time ? format(record.check_in_time, 'h:mm a') : 'N/A'}</TableCell>
             <TableCell>
-                <div className="font-medium">{(record as any).patient_name || 'N/A'}</div>
-                <div className="text-xs text-muted-foreground">{(record as any).patient_phone || 'N/A'}</div>
+                <div className="font-medium">{record.patients?.name || 'N/A'}</div>
+                <div className="text-xs text-muted-foreground">{record.patients?.phone || 'N/A'}</div>
             </TableCell>
-            <TableCell>{(record as any).doctor_name || 'N/A'}</TableCell>
+            <TableCell>
+                <div className="font-medium">{record.doctors?.name || 'N/A'}</div>
+                <div className="text-xs text-muted-foreground">{record.doctors?.specialty || 'N/A'}</div>
+            </TableCell>
             <TableCell>{record.session}</TableCell>
             <TableCell>{getStatusBadge(record.status)}</TableCell>
         </TableRow>
