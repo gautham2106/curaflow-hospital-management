@@ -533,8 +533,8 @@ export default function VisitRegisterPage() {
                                   <AccordionTrigger className="p-4 text-left hover:no-underline">
                                       <div className="flex-1 flex justify-between items-start">
                                           <div>
-        <p className="font-bold">{(record as any).patient_name || 'N/A'}</p>
-        <p className="text-sm text-muted-foreground">{(record as any).doctor_name || 'N/A'}</p>
+        <p className="font-bold">{(record as any).patientName || 'N/A'}</p>
+        <p className="text-sm text-muted-foreground">{(record as any).doctorName || 'N/A'}</p>
                                               {getStatusBadge(record.status)}
                                           </div>
                                           <div className="text-right">
@@ -545,7 +545,7 @@ export default function VisitRegisterPage() {
                                   </AccordionTrigger>
                                   <AccordionContent className="px-4">
                                       <div className="space-y-3 text-sm text-muted-foreground border-t pt-4">
-                                        <p><strong>Phone:</strong> {(record as any).patient_phone || 'N/A'}</p>
+                                        <p><strong>Phone:</strong> {(record as any).phone || 'N/A'}</p>
                                         <p><strong>Session:</strong> {record.session}</p>
                                         <div className="space-y-1 border-t pt-3 mt-3">
                             {record.called_time ? <p><strong>Called:</strong> {format(record.called_time, 'h:mm:ss a')}</p> : null}
