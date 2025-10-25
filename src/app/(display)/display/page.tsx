@@ -11,65 +11,25 @@ import { format, differenceInDays, parseISO, isBefore, formatDistanceToNowStrict
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Calendar, Clock, Loader2, Users, ArrowRight, AlertCircle } from 'lucide-react';
 import Image from 'next/image';
-import useEmblaCarousel from 'embla-carousel-react'
+// Removed embla-carousel-react import - using simple carousel instead
 import { useToast } from '@/hooks/use-toast';
 import { useFetch } from '@/hooks/use-api';
 import { useCrossPageSync } from '@/hooks/use-cross-page-sync';
 
-// --- Ad Carousel Component ---
+// --- Simplified Ad Carousel Component ---
 function AdCarousel({ resources, orientation }: { resources: AdResource[], orientation: 'vertical' | 'horizontal' }) {
-    const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, axis: orientation === 'vertical' ? 'y' : 'x' });
-    const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+    const [currentIndex, setCurrentIndex] = useState(0);
 
+    // Simple auto-advance timer
     useEffect(() => {
-        if (!emblaApi || !resources || resources.length === 0) return;
+        if (!resources || resources.length <= 1) return;
 
-        let timer: NodeJS.Timeout;
+        const timer = setInterval(() => {
+            setCurrentIndex((prev) => (prev + 1) % resources.length);
+        }, 5000); // Change every 5 seconds
 
-        const playNext = () => emblaApi.scrollNext();
-
-        const onSelect = () => {
-            clearTimeout(timer);
-            const selectedIndex = emblaApi.selectedScrollSnap();
-            const resource = resources[selectedIndex];
-            
-            videoRefs.current.forEach(video => {
-                if (video) video.muted = true;
-            });
-            
-            if (resource?.type === 'image') {
-                timer = setTimeout(playNext, resource.duration * 1000);
-            } else if (resource?.type === 'video') {
-                const videoElement = videoRefs.current[selectedIndex];
-                if (videoElement) {
-                    videoElement.currentTime = 0;
-                    videoElement.play().catch(e => console.error("Video play failed:", e));
-                }
-            }
-        };
-
-        const onVideoEnd = () => {
-            playNext();
-        };
-
-        emblaApi.on('select', onSelect);
-        onSelect(); 
-
-        videoRefs.current.forEach(video => {
-            if (video) {
-                video.removeEventListener('ended', onVideoEnd);
-                video.addEventListener('ended', onVideoEnd);
-            }
-        });
-
-        return () => {
-            clearTimeout(timer);
-            emblaApi.off('select', onSelect);
-            videoRefs.current.forEach(video => {
-               if (video) video.removeEventListener('ended', onVideoEnd);
-            });
-        };
-    }, [emblaApi, resources]);
+        return () => clearInterval(timer);
+    }, [resources]);
 
     // Early return if no resources
     if (!resources || resources.length === 0) {
@@ -80,39 +40,51 @@ function AdCarousel({ resources, orientation }: { resources: AdResource[], orien
         );
     }
 
+    const currentResource = resources[currentIndex];
+
     return (
-        <div className="h-full w-full overflow-hidden rounded-lg shadow-lg bg-card" ref={emblaRef}>
-            <div className={cn("flex h-full", orientation === 'vertical' ? 'flex-col' : 'flex-row')}>
-                {resources.map((res, index) => (
-                    <div key={res.id} className="flex-[0_0_100%] relative min-h-0 bg-black flex items-center justify-center p-2">
-                        <div className="relative w-full h-full flex items-center justify-center">
-                            {res.type === 'image' && (
-                                <img 
-                                    src={res.url} 
-                                    alt={res.title} 
-                                    className="max-w-full max-h-full object-contain rounded-lg" 
-                                />
-                            )}
-                            {res.type === 'video' && (
-                                <video
-                                    ref={el => videoRefs.current[index] = el}
-                                    src={res.url}
-                                    muted
-                                    playsInline
-                                    className="max-w-full max-h-full object-contain rounded-lg"
-                                    preload="metadata"
-                                />
-                            )}
-                        </div>
-                        
-                        {/* Overlay with content info */}
-                        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent text-white rounded-b-lg">
-                           <h3 className="font-bold text-lg">{res.title}</h3>
-                           <p className="text-xs">{res.duration} seconds</p>
-                        </div>
-                    </div>
-                ))}
+        <div className="h-full w-full overflow-hidden rounded-lg shadow-lg bg-card relative">
+            <div className="relative w-full h-full flex items-center justify-center bg-black">
+                {currentResource.type === 'image' && (
+                    <img 
+                        src={currentResource.url} 
+                        alt={currentResource.title} 
+                        className="w-full h-full object-contain" 
+                        style={{ maxWidth: '100%', maxHeight: '100%' }}
+                    />
+                )}
+                {currentResource.type === 'video' && (
+                    <video
+                        src={currentResource.url}
+                        muted
+                        playsInline
+                        autoPlay
+                        loop
+                        className="w-full h-full object-contain"
+                        style={{ maxWidth: '100%', maxHeight: '100%' }}
+                    />
+                )}
             </div>
+            
+            {/* Simple overlay */}
+            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent text-white">
+                <h3 className="font-bold text-lg">{currentResource.title}</h3>
+                <p className="text-xs">{currentResource.duration} seconds</p>
+            </div>
+
+            {/* Simple dots indicator */}
+            {resources.length > 1 && (
+                <div className="absolute bottom-2 right-2 flex space-x-1">
+                    {resources.map((_, index) => (
+                        <div
+                            key={index}
+                            className={`w-2 h-2 rounded-full ${
+                                index === currentIndex ? 'bg-white' : 'bg-white/50'
+                            }`}
+                        />
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
