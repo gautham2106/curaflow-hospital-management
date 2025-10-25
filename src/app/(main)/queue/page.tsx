@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { Play, SkipForward, RotateCcw, UserCheck, Power, Loader2 } from "lucide-react";
 import { ReasonDialog } from "@/components/queue/reason-dialog";
 import { useFetch } from "@/hooks/use-api";
-import { checkSessionTransition, shouldClearPreviousSessionData, formatTimeUntilNextSession } from "@/lib/session-transition";
+import { checkSessionTransition, shouldClearPreviousSessionData, formatTimeUntilNextSession, getMinutesUntilCurrentSessionEnds } from "@/lib/session-transition";
 import { useCrossPageSync } from "@/hooks/use-cross-page-sync";
 
 const getStatusBadge = (status: QueueItem['status']) => {
@@ -211,22 +211,60 @@ export default function LiveQueuePage() {
     useEffect(() => {
         if (!sessionConfigs.length) return;
 
-        const checkSessionTransitionInterval = setInterval(() => {
+        const checkSessionTransitionInterval = setInterval(async () => {
             const transitionInfo = checkSessionTransition(sessionConfigs, previousSession);
-            
+
+            // Show 5-minute warning before session ends
+            const minutesUntilSessionEnds = getMinutesUntilCurrentSessionEnds(sessionConfigs);
+            if (minutesUntilSessionEnds === 5 && currentSession) {
+                const waitingCount = doctorQueue.filter(q => q.status === 'Waiting').length;
+                if (waitingCount > 0) {
+                    toast({
+                        title: "⏰ Session Ending in 5 Minutes",
+                        description: `${currentSession.name} session ends soon. ${waitingCount} patients still waiting. Please end session manually.`,
+                        duration: 10000
+                    });
+                }
+            }
+
             if (transitionInfo.isTransitioning) {
+                // Automatically end the previous session if there was one
+                if (previousSession && selectedDoctorId && clinicId) {
+                    try {
+                        const response = await post('/api/sessions/end', {
+                            doctorId: selectedDoctorId,
+                            sessionName: previousSession.name
+                        });
+
+                        if (response && response.ok) {
+                            const result = await response.json();
+                            const stats = result.sessionStats;
+
+                            // Show auto-end notification with statistics
+                            toast({
+                                title: `${previousSession.name} Session Auto-Ended`,
+                                description: `Completed: ${stats.completedPatients}, No-show: ${stats.noShowPatients}, Revenue: ₹${stats.totalRevenue}`,
+                                duration: 8000
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Error auto-ending previous session:', error);
+                        // Continue with transition even if auto-end fails
+                    }
+                }
+
                 setCurrentSession(transitionInfo.currentSession);
                 setSessionTransitionInfo(transitionInfo);
-                
+
                 // Clear queue data on transition
                 setQueue([]);
-                
+
                 toast({
                     title: "Session Transition",
                     description: `Transitioned from ${previousSession?.name} to ${transitionInfo.currentSession?.name || 'No active session'}`,
                     duration: 5000
                 });
-                
+
                 setPreviousSession(transitionInfo.currentSession);
             } else if (transitionInfo.currentSession?.name !== currentSession?.name) {
                 setCurrentSession(transitionInfo.currentSession);
@@ -235,7 +273,7 @@ export default function LiveQueuePage() {
         }, 60000); // Check every minute
 
         return () => clearInterval(checkSessionTransitionInterval);
-    }, [sessionConfigs, previousSession, currentSession, toast]);
+    }, [sessionConfigs, previousSession, currentSession, toast, selectedDoctorId, clinicId, post]);
     
     const selectedDoctor = doctors.find(d => d.id === selectedDoctorId);
 

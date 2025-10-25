@@ -100,20 +100,34 @@ export function shouldClearPreviousSessionData(
   );
 }
 
+export function getMinutesUntilCurrentSessionEnds(sessionConfigs: SessionConfig[]): number | null {
+  const currentSession = getCurrentSession(sessionConfigs);
+  if (!currentSession) return null;
+
+  const now = new Date();
+  const currentTime = now.getHours() * 60 + now.getMinutes(); // Convert to minutes
+
+  const [endHour, endMinute] = currentSession.end.split(':').map(Number);
+  const sessionEndTime = endHour * 60 + endMinute;
+
+  const minutesRemaining = sessionEndTime - currentTime;
+  return minutesRemaining > 0 ? minutesRemaining : 0;
+}
+
 export function formatTimeUntilNextSession(minutes: number | null): string {
   if (!minutes) return 'No upcoming session';
-  
+
   if (minutes < 60) {
     return `${minutes}m until next session`;
   }
-  
+
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
-  
+
   if (remainingMinutes === 0) {
     return `${hours}h until next session`;
   }
-  
+
   return `${hours}h ${remainingMinutes}m until next session`;
 }
 
