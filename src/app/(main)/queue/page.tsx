@@ -25,8 +25,8 @@ const getStatusBadge = (status: QueueItem['status']) => {
              return <Badge variant="destructive" className="bg-yellow-500 text-white shadow-sm">⚠️ SKIPPED</Badge>;
         case 'Completed':
             return <Badge variant="secondary" className="shadow-sm">✓ Completed</Badge>;
-        case 'Cancelled':
-            return <Badge variant="destructive" className="shadow-sm">✗ Cancelled</Badge>;
+        case 'No-show':
+            return <Badge variant="destructive" className="shadow-sm">❌ No Show</Badge>;
         default:
             return <Badge variant="secondary" className="shadow-sm">{status}</Badge>;
     }
@@ -262,7 +262,9 @@ export default function LiveQueuePage() {
         const done = doctorQueue.filter(q => q.status === 'Completed').length;
         const waiting = doctorQueue.filter(q => q.status === 'Waiting').length;
         const skipped = doctorQueue.filter(q => q.status === 'Skipped').length;
-        return { total, done, waiting, skipped };
+        const noShow = doctorQueue.filter(q => q.status === 'No-show').length;
+        const inConsultation = doctorQueue.filter(q => q.status === 'In-consultation').length;
+        return { total, done, waiting, skipped, noShow, inConsultation };
     }, [doctorQueue]);
 
 

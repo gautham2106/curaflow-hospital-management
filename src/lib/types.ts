@@ -622,7 +622,7 @@ export type Appointment = {
   doctor: Pick<Doctor, "id" | "name" | "specialty">;
   time: Date;
   duration: number; // in minutes
-  status: "Scheduled" | "Checked-in" | "In-consultation" | "Completed" | "Cancelled" | "No-show";
+  status: "Scheduled" | "Checked-in" | "In-consultation" | "Completed" | "No-show";
   type: "Booking" | "Walk-in" | "Follow-up";
   comments?: string;
 };
@@ -632,7 +632,7 @@ export type QueueItem = {
     patientName: string;
     doctorName: string;
     checkInTime: Date;
-    status: "Waiting" | "In-consultation" | "Completed" | "Cancelled" | "Skipped";
+    status: "Waiting" | "In-consultation" | "Completed" | "Skipped" | "No-show";
     priority: "High" | "Medium" | "Low";
     tokenNumber: number;
     appointmentId?: string;

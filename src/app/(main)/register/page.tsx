@@ -49,7 +49,6 @@ const getSimplifiedStatus = (status: VisitRecord['status']): 'Scheduled' | 'Comp
     case 'Completed':
       return 'Completed';
     case 'No-show':
-    case 'Cancelled':
       return 'No Show';
     case 'Scheduled':
     case 'Waiting':
