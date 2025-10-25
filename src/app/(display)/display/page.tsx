@@ -21,27 +21,6 @@ function AdCarousel({ resources, orientation }: { resources: AdResource[], orien
     const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
     const [imageAspectRatios, setImageAspectRatios] = useState<Record<string, number>>({});
 
-    // Function to detect image aspect ratio
-    const detectAspectRatio = (url: string, resourceId: string) => {
-        const img = new Image();
-        img.onload = () => {
-            const aspectRatio = img.width / img.height;
-            setImageAspectRatios(prev => ({
-                ...prev,
-                [resourceId]: aspectRatio
-            }));
-        };
-        img.src = url;
-    };
-
-    // Detect aspect ratios for all images
-    useEffect(() => {
-        resources.forEach(resource => {
-            if (resource.type === 'image' && !imageAspectRatios[resource.id]) {
-                detectAspectRatio(resource.url, resource.id);
-            }
-        });
-    }, [resources, imageAspectRatios]);
 
     useEffect(() => {
         if (!emblaApi || resources.length === 0) return;
@@ -99,26 +78,29 @@ function AdCarousel({ resources, orientation }: { resources: AdResource[], orien
             <div className={cn("flex h-full", orientation === 'vertical' ? 'flex-col' : 'flex-row')}>
                 {resources.map((res, index) => {
                     const aspectRatio = imageAspectRatios[res.id];
-                    const isLandscape = aspectRatio && aspectRatio > 1;
-                    const isPortrait = aspectRatio && aspectRatio < 1;
-                    const isSquare = aspectRatio && Math.abs(aspectRatio - 1) < 0.1;
                     
                     return (
                         <div key={res.id} className="flex-[0_0_100%] relative min-h-0 bg-black flex items-center justify-center">
                             {res.type === 'image' && (
-                                <div className={cn(
-                                    "relative flex items-center justify-center",
-                                    isLandscape ? "w-full h-3/4" : 
-                                    isPortrait ? "w-3/4 h-full" : 
-                                    "w-full h-full"
-                                )}>
-                                    <Image 
+                                <div className="relative w-full h-full flex items-center justify-center">
+                                    <img 
                                         src={res.url} 
                                         alt={res.title} 
-                                        fill 
-                                        className="object-contain" 
-                                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                        priority={index === 0}
+                                        className="max-w-full max-h-full object-contain" 
+                                        style={{
+                                            width: 'auto',
+                                            height: 'auto',
+                                            maxWidth: '100%',
+                                            maxHeight: '100%'
+                                        }}
+                                        onLoad={(e) => {
+                                            const img = e.target as HTMLImageElement;
+                                            const aspectRatio = img.naturalWidth / img.naturalHeight;
+                                            setImageAspectRatios(prev => ({
+                                                ...prev,
+                                                [res.id]: aspectRatio
+                                            }));
+                                        }}
                                     />
                                 </div>
                             )}
@@ -131,6 +113,12 @@ function AdCarousel({ resources, orientation }: { resources: AdResource[], orien
                                         playsInline
                                         className="max-w-full max-h-full object-contain"
                                         preload="metadata"
+                                        style={{
+                                            width: 'auto',
+                                            height: 'auto',
+                                            maxWidth: '100%',
+                                            maxHeight: '100%'
+                                        }}
                                     />
                                 </div>
                             )}
@@ -139,8 +127,7 @@ function AdCarousel({ resources, orientation }: { resources: AdResource[], orien
                                <p className="text-xs">{res.duration} seconds</p>
                                {aspectRatio && (
                                    <p className="text-xs opacity-75">
-                                       {isLandscape ? 'Landscape' : isPortrait ? 'Portrait' : 'Square'} 
-                                       ({aspectRatio.toFixed(2)}:1)
+                                       Aspect Ratio: {aspectRatio.toFixed(2)}:1
                                    </p>
                                )}
                             </div>
