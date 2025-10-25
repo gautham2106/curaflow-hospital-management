@@ -1,4 +1,11 @@
-import { supabaseService } from './service';
+import { createClient } from '@supabase/supabase-js';
+import type { Database } from '@/lib/types';
+
+// Create client-side Supabase client for storage operations
+const supabase = createClient<Database>(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export interface UploadResult {
   success: boolean;
@@ -34,7 +41,7 @@ export class SupabaseStorageService {
       const filePath = `${folderPath}/${fileName}`;
 
       // Upload file to Supabase Storage
-      const { data, error } = await supabaseService.supabase.storage
+      const { data, error } = await supabase.storage
         .from(this.BUCKET_NAME)
         .upload(filePath, file, {
           cacheControl: '3600',
@@ -50,7 +57,7 @@ export class SupabaseStorageService {
       }
 
       // Get public URL
-      const { data: { publicUrl } } = supabaseService.supabase.storage
+      const { data: { publicUrl } } = supabase.storage
         .from(this.BUCKET_NAME)
         .getPublicUrl(filePath);
 
@@ -76,7 +83,7 @@ export class SupabaseStorageService {
    */
   static async deleteFile(filePath: string): Promise<UploadResult> {
     try {
-      const { error } = await supabaseService.supabase.storage
+      const { error } = await supabase.storage
         .from(this.BUCKET_NAME)
         .remove([filePath]);
 
