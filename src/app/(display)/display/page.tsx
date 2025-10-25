@@ -623,7 +623,8 @@ function DisplayView() {
       
       if (doctor) {
           return (
-            <div className="w-full max-w-2xl mx-auto p-4 flex items-center justify-center min-h-screen">
+            <div className="w-full max-w-md mx-auto p-4 flex items-center justify-center min-h-screen">
+                {/* QR Mode - Always use mobile view for personalized tracking */}
                 <MobileQueueDisplay 
                   doctor={doctor} 
                   highlightToken={tokenToHighlight} 
@@ -643,19 +644,8 @@ function DisplayView() {
       <main className="flex-1 flex flex-col p-4 md:p-6 lg:p-8">
         {doctorsForTv.length > 0 ? (
           <div className="grid gap-8 w-full h-full grid-cols-1">
-            {/* Use mobile display for smaller screens, desktop display for larger screens */}
-            <div className="block md:hidden">
-              <MobileQueueDisplay 
-                doctor={doctorsForTv[currentDoctorIndex]} 
-                queue={queue} 
-                currentSession={currentSession}
-                sessionConfigs={sessionConfigs}
-                currentTime={currentTime}
-              />
-            </div>
-            <div className="hidden md:block">
-              <DoctorDisplayCard doctor={doctorsForTv[currentDoctorIndex]} queue={queue} currentSession={currentSession} />
-            </div>
+            {/* TV Display - Always use desktop view for general display */}
+            <DoctorDisplayCard doctor={doctorsForTv[currentDoctorIndex]} queue={queue} currentSession={currentSession} />
           </div>
         ) : (
           <div className="flex flex-1 items-center justify-center h-full">
