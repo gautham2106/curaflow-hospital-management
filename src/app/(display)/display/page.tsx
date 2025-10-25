@@ -1,5 +1,6 @@
 
 'use client';
+// Force deployment - React error #310 fix applied
 import { useState, useEffect, useMemo, Suspense, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import type { Doctor, QueueItem, SessionConfig, AdResource } from '@/lib/types';
