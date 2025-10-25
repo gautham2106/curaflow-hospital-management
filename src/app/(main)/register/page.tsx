@@ -356,9 +356,7 @@ export default function VisitRegisterPage() {
             <TableCell>
                 <div className="text-sm">
                     <div className="font-medium">{format(record.date, 'MMM dd, yyyy')}</div>
-                    <div className="text-xs text-muted-foreground">
-                        {record.checkInTime ? `Checked in: ${format(record.checkInTime, 'h:mm a')}` : 'Not checked in'}
-                    </div>
+                    <div className="text-xs text-muted-foreground">{record.session}</div>
                 </div>
             </TableCell>
             <TableCell>
@@ -549,9 +547,7 @@ export default function VisitRegisterPage() {
                                           <div className="text-right">
                                               <p className="font-mono text-lg font-semibold text-primary">#{record.token_number}</p>
                                               <p className="text-xs text-muted-foreground">{format(record.date, 'MMM dd, yyyy')}</p>
-                                              <p className="text-xs text-muted-foreground">
-                                                  {record.checkInTime ? `Checked in: ${format(record.checkInTime, 'h:mm a')}` : 'Not checked in'}
-                                              </p>
+                                              <p className="text-xs text-muted-foreground">{record.session}</p>
                                           </div>
                                       </div>
                                   </AccordionTrigger>
