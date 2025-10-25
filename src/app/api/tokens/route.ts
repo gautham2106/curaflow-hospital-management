@@ -65,6 +65,7 @@ export async function POST(request: NextRequest) {
         ) + 1;
 
         // Create visit record
+        const isToday = format(apptDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
         const newVisitRecord = await supabaseService.createVisit({
             clinic_id: clinicId,
             patient_id: patientRecord.id,
@@ -72,12 +73,12 @@ export async function POST(request: NextRequest) {
             token_number: nextTokenNumber,
             date: format(apptDate, 'yyyy-MM-dd'),
             session: session,
-            check_in_time: new Date().toISOString(),
+            check_in_time: isToday ? new Date().toISOString() : null, // Only set check_in_time for today's appointments
             status: 'Scheduled'
         });
 
         // Add to queue if it's today's appointment
-        if (format(apptDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')) {
+        if (isToday) {
             await supabaseService.addToQueue({
                 clinic_id: clinicId,
                 appointment_id: newVisitRecord.id,

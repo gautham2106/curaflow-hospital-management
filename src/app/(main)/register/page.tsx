@@ -136,7 +136,7 @@ export default function VisitRegisterPage() {
         setDailyRecords(data.map((r: any) => ({ 
           ...r, 
           date: new Date(r.date), 
-          checkInTime: new Date(r.check_in_time), 
+          checkInTime: r.check_in_time ? new Date(r.check_in_time) : null, 
           calledTime: r.called_time ? new Date(r.called_time) : undefined, 
           completedTime: r.completed_time ? new Date(r.completed_time) : undefined,
           // Flatten nested objects
@@ -180,7 +180,7 @@ export default function VisitRegisterPage() {
         setDailyRecords(data.map((r: any) => ({ 
           ...r, 
           date: new Date(r.date), 
-          checkInTime: new Date(r.check_in_time), 
+          checkInTime: r.check_in_time ? new Date(r.check_in_time) : null, 
           calledTime: r.called_time ? new Date(r.called_time) : undefined, 
           completedTime: r.completed_time ? new Date(r.completed_time) : undefined,
           // Flatten nested objects
@@ -223,7 +223,7 @@ export default function VisitRegisterPage() {
         setDailyRecords(data.map((r: any) => ({ 
           ...r, 
           date: new Date(r.date), 
-          checkInTime: new Date(r.check_in_time), 
+          checkInTime: r.check_in_time ? new Date(r.check_in_time) : null, 
           calledTime: r.called_time ? new Date(r.called_time) : undefined, 
           completedTime: r.completed_time ? new Date(r.completed_time) : undefined,
           // Flatten nested objects
@@ -353,7 +353,7 @@ export default function VisitRegisterPage() {
             className="cursor-pointer hover:bg-muted/50"
         >
             <TableCell className="font-mono">{record.token_number}</TableCell>
-            <TableCell>{record.check_in_time ? format(record.check_in_time, 'h:mm a') : 'N/A'}</TableCell>
+            <TableCell>{record.checkInTime ? format(record.checkInTime, 'h:mm a') : 'N/A'}</TableCell>
             <TableCell>
                 <div className="font-medium">{record.patients?.name || 'N/A'}</div>
                 <div className="text-xs text-muted-foreground">{record.patients?.phone || 'N/A'}</div>
@@ -539,7 +539,7 @@ export default function VisitRegisterPage() {
                                           </div>
                                           <div className="text-right">
                                               <p className="font-mono text-lg font-semibold text-primary">#{record.token_number}</p>
-                                              <p className="text-xs text-muted-foreground">{record.check_in_time ? format(record.check_in_time, 'h:mm a') : 'N/A'}</p>
+                                              <p className="text-xs text-muted-foreground">{record.checkInTime ? format(record.checkInTime, 'h:mm a') : 'N/A'}</p>
                                           </div>
                                       </div>
                                   </AccordionTrigger>
