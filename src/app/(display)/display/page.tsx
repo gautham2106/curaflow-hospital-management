@@ -19,6 +19,29 @@ import { useCrossPageSync } from '@/hooks/use-cross-page-sync';
 function AdCarousel({ resources, orientation }: { resources: AdResource[], orientation: 'vertical' | 'horizontal' }) {
     const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, axis: orientation === 'vertical' ? 'y' : 'x' });
     const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+    const [imageAspectRatios, setImageAspectRatios] = useState<Record<string, number>>({});
+
+    // Function to detect image aspect ratio
+    const detectAspectRatio = (url: string, resourceId: string) => {
+        const img = new Image();
+        img.onload = () => {
+            const aspectRatio = img.width / img.height;
+            setImageAspectRatios(prev => ({
+                ...prev,
+                [resourceId]: aspectRatio
+            }));
+        };
+        img.src = url;
+    };
+
+    // Detect aspect ratios for all images
+    useEffect(() => {
+        resources.forEach(resource => {
+            if (resource.type === 'image' && !imageAspectRatios[resource.id]) {
+                detectAspectRatio(resource.url, resource.id);
+            }
+        });
+    }, [resources, imageAspectRatios]);
 
     useEffect(() => {
         if (!emblaApi || resources.length === 0) return;
@@ -74,26 +97,56 @@ function AdCarousel({ resources, orientation }: { resources: AdResource[], orien
     return (
         <div className="h-full w-full overflow-hidden rounded-lg shadow-lg bg-card" ref={emblaRef}>
             <div className={cn("flex h-full", orientation === 'vertical' ? 'flex-col' : 'flex-row')}>
-                {resources.map((res, index) => (
-                    <div key={res.id} className="flex-[0_0_100%] relative min-h-0 bg-black">
-                        {res.type === 'image' && (
-                            <Image src={res.url} alt={res.title} fill className="object-cover" />
-                        )}
-                        {res.type === 'video' && (
-                            <video
-                                ref={el => videoRefs.current[index] = el}
-                                src={res.url}
-                                muted
-                                playsInline
-                                className="w-full h-full object-cover"
-                            />
-                        )}
-                        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent text-white">
-                           <h3 className="font-bold text-lg">{res.title}</h3>
-                           <p className="text-xs">{res.duration} seconds</p>
+                {resources.map((res, index) => {
+                    const aspectRatio = imageAspectRatios[res.id];
+                    const isLandscape = aspectRatio && aspectRatio > 1;
+                    const isPortrait = aspectRatio && aspectRatio < 1;
+                    const isSquare = aspectRatio && Math.abs(aspectRatio - 1) < 0.1;
+                    
+                    return (
+                        <div key={res.id} className="flex-[0_0_100%] relative min-h-0 bg-black flex items-center justify-center">
+                            {res.type === 'image' && (
+                                <div className={cn(
+                                    "relative flex items-center justify-center",
+                                    isLandscape ? "w-full h-3/4" : 
+                                    isPortrait ? "w-3/4 h-full" : 
+                                    "w-full h-full"
+                                )}>
+                                    <Image 
+                                        src={res.url} 
+                                        alt={res.title} 
+                                        fill 
+                                        className="object-contain" 
+                                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                        priority={index === 0}
+                                    />
+                                </div>
+                            )}
+                            {res.type === 'video' && (
+                                <div className="relative w-full h-full flex items-center justify-center">
+                                    <video
+                                        ref={el => videoRefs.current[index] = el}
+                                        src={res.url}
+                                        muted
+                                        playsInline
+                                        className="max-w-full max-h-full object-contain"
+                                        preload="metadata"
+                                    />
+                                </div>
+                            )}
+                            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent text-white">
+                               <h3 className="font-bold text-lg">{res.title}</h3>
+                               <p className="text-xs">{res.duration} seconds</p>
+                               {aspectRatio && (
+                                   <p className="text-xs opacity-75">
+                                       {isLandscape ? 'Landscape' : isPortrait ? 'Portrait' : 'Square'} 
+                                       ({aspectRatio.toFixed(2)}:1)
+                                   </p>
+                               )}
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         </div>
     );
@@ -671,6 +724,7 @@ function DisplayView() {
   }
 
   const showAds = enableAds && adResources.length > 0;
+  const [adMode, setAdMode] = useState<'sidebar' | 'fullscreen' | 'split'>('sidebar');
   
   const mainContent = (
       <main className="flex-1 flex flex-col p-4 md:p-6 lg:p-8">
@@ -708,7 +762,34 @@ function DisplayView() {
         <div className="flex-1 flex flex-row min-h-0">
             <div className="w-3/4 overflow-y-auto">{mainContent}</div>
             <div className="w-1/4 p-4 md:p-6 lg:p-8 pl-0">
-                <AdCarousel resources={adResources} orientation="vertical" />
+                <div className="h-full flex flex-col">
+                    <div className="flex gap-2 mb-4">
+                        <button 
+                            onClick={() => setAdMode('sidebar')}
+                            className={cn("px-3 py-1 text-xs rounded", adMode === 'sidebar' ? 'bg-primary text-primary-foreground' : 'bg-muted')}
+                        >
+                            Sidebar
+                        </button>
+                        <button 
+                            onClick={() => setAdMode('fullscreen')}
+                            className={cn("px-3 py-1 text-xs rounded", adMode === 'fullscreen' ? 'bg-primary text-primary-foreground' : 'bg-muted')}
+                        >
+                            Fullscreen
+                        </button>
+                        <button 
+                            onClick={() => setAdMode('split')}
+                            className={cn("px-3 py-1 text-xs rounded", adMode === 'split' ? 'bg-primary text-primary-foreground' : 'bg-muted')}
+                        >
+                            Split
+                        </button>
+                    </div>
+                    <div className="flex-1">
+                        <AdCarousel 
+                            resources={adResources} 
+                            orientation={adMode === 'fullscreen' ? 'horizontal' : 'vertical'} 
+                        />
+                    </div>
+                </div>
             </div>
         </div>
       ) : (
