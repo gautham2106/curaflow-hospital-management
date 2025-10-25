@@ -4,7 +4,14 @@ import type { Database } from '@/lib/types';
 // Create client-side Supabase client for storage operations
 const supabase = createClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false
+    }
+  }
 );
 
 export interface UploadResult {
@@ -40,6 +47,13 @@ export class SupabaseStorageService {
       const folderPath = folder || clinicId;
       const filePath = `${folderPath}/${fileName}`;
 
+      console.log('📤 Uploading file to storage:', {
+        bucket: this.BUCKET_NAME,
+        path: filePath,
+        size: file.size,
+        type: file.type
+      });
+
       // Upload file to Supabase Storage
       const { data, error } = await supabase.storage
         .from(this.BUCKET_NAME)
@@ -50,6 +64,15 @@ export class SupabaseStorageService {
 
       if (error) {
         console.error('Storage upload error:', error);
+        
+        // If RLS error, provide helpful message
+        if (error.message.includes('row-level security') || error.message.includes('RLS')) {
+          return {
+            success: false,
+            error: 'Storage access denied. Please run the FIX-STORAGE-RLS-POLICIES.sql script in your Supabase dashboard.'
+          };
+        }
+        
         return {
           success: false,
           error: error.message
@@ -60,6 +83,8 @@ export class SupabaseStorageService {
       const { data: { publicUrl } } = supabase.storage
         .from(this.BUCKET_NAME)
         .getPublicUrl(filePath);
+
+      console.log('✅ File uploaded successfully:', publicUrl);
 
       return {
         success: true,
