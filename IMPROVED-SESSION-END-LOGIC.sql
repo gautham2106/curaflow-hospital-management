@@ -191,6 +191,50 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- Remove 'Cancelled' status to avoid confusion
 -- Keep only: Waiting, In-consultation, Skipped, Completed, No-show
 
+-- STEP 1: Check current data before migration
+DO $$
+DECLARE
+    cancelled_queue_count INTEGER;
+    cancelled_visits_count INTEGER;
+BEGIN
+    -- Count existing 'Cancelled' statuses
+    SELECT COUNT(*) INTO cancelled_queue_count FROM queue WHERE status = 'Cancelled';
+    SELECT COUNT(*) INTO cancelled_visits_count FROM visits WHERE status = 'Cancelled';
+    
+    -- Log the counts
+    RAISE NOTICE 'Found % cancelled statuses in queue table', cancelled_queue_count;
+    RAISE NOTICE 'Found % cancelled statuses in visits table', cancelled_visits_count;
+END $$;
+
+-- STEP 2: Migrate existing data BEFORE adding constraints
+-- Convert all 'Cancelled' statuses to 'No-show'
+UPDATE queue 
+SET status = 'No-show' 
+WHERE status = 'Cancelled';
+
+UPDATE visits 
+SET status = 'No-show' 
+WHERE status = 'Cancelled';
+
+-- STEP 3: Verify migration was successful
+DO $$
+DECLARE
+    remaining_cancelled_queue INTEGER;
+    remaining_cancelled_visits INTEGER;
+BEGIN
+    -- Check if any 'Cancelled' statuses remain
+    SELECT COUNT(*) INTO remaining_cancelled_queue FROM queue WHERE status = 'Cancelled';
+    SELECT COUNT(*) INTO remaining_cancelled_visits FROM visits WHERE status = 'Cancelled';
+    
+    IF remaining_cancelled_queue > 0 OR remaining_cancelled_visits > 0 THEN
+        RAISE EXCEPTION 'Migration failed: % cancelled statuses still exist in queue, % in visits', 
+            remaining_cancelled_queue, remaining_cancelled_visits;
+    ELSE
+        RAISE NOTICE 'Migration successful: All cancelled statuses converted to no-show';
+    END IF;
+END $$;
+
+-- STEP 4: Now update constraints after successful data migration
 -- Update queue table constraint
 ALTER TABLE queue DROP CONSTRAINT IF EXISTS queue_status_check;
 ALTER TABLE queue ADD CONSTRAINT queue_status_check 
@@ -200,6 +244,14 @@ ALTER TABLE queue ADD CONSTRAINT queue_status_check
 ALTER TABLE visits DROP CONSTRAINT IF EXISTS visits_status_check;
 ALTER TABLE visits ADD CONSTRAINT visits_status_check 
     CHECK (status IN ('Scheduled', 'Waiting', 'In-consultation', 'Skipped', 'Completed', 'No-show'));
+
+-- STEP 5: Verify constraints are working
+DO $$
+BEGIN
+    RAISE NOTICE 'Status constraints updated successfully';
+    RAISE NOTICE 'Queue table now only allows: Waiting, In-consultation, Skipped, Completed, No-show';
+    RAISE NOTICE 'Visits table now only allows: Scheduled, Waiting, In-consultation, Skipped, Completed, No-show';
+END $$;
 
 -- ============================================================
 -- HELPER FUNCTION: Convert Cancelled to No-show
