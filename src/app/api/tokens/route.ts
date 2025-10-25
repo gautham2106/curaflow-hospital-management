@@ -57,12 +57,14 @@ export async function POST(request: NextRequest) {
         }
 
         // Get next token number for this doctor, date, and session
+        // Note: getNextTokenNumber now uses atomic database function
+        // and returns the NEXT number (already incremented), so no +1 needed
         const nextTokenNumber = await supabaseService.getNextTokenNumber(
             clinicId,
             doctorId,
             format(apptDate, 'yyyy-MM-dd'),
             session
-        ) + 1;
+        );
 
         // Create visit record
         const newVisitRecord = await supabaseService.createVisit({

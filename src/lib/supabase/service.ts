@@ -347,18 +347,24 @@ export class SupabaseService {
   }
 
   async getNextTokenNumber(clinicId: string, doctorId: string, date: string, session: string) {
+    // Use atomic database function to prevent race conditions
+    // This ensures sequential token numbers even when multiple family members
+    // are added simultaneously (fixes token duplication bug)
     const { data, error } = await this.serviceSupabase
-      .from('visits')
-      .select('token_number')
-      .eq('clinic_id', clinicId)
-      .eq('doctor_id', doctorId)
-      .eq('date', date)
-      .eq('session', session)
-      .order('token_number', { ascending: false })
-      .limit(1);
-    
-    if (error) throw error;
-    return data?.[0]?.token_number || 0;
+      .rpc('get_and_increment_token_number', {
+        p_clinic_id: clinicId,
+        p_doctor_id: doctorId,
+        p_date: date,
+        p_session: session
+      });
+
+    if (error) {
+      console.error('Error getting next token number:', error);
+      throw error;
+    }
+
+    // RPC function returns the next token number directly (already incremented)
+    return data || 1;
   }
 
   // ===== QUEUE =====
