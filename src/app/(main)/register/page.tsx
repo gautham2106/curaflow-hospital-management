@@ -14,7 +14,8 @@ import {
   Loader2,
   Users,
   Clock,
-  UserX
+  UserX,
+  History
 } from 'lucide-react';
 import { addDays, subDays, format, startOfDay, isToday } from 'date-fns';
 import type { VisitRecord, Doctor, SessionConfig } from '@/lib/types';
@@ -70,6 +71,73 @@ function calculateWaitTime(records: VisitRecord[]) {
   return `${avgWait}m`;
 }
 
+// Patient History Component
+const PatientHistory = ({ patient, onBack }: { patient: any; onBack: () => void }) => {
+    const [history, setHistory] = useState<VisitRecord[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const { toast } = useToast();
+    const { get } = useFetch();
+    const [clinicId, setClinicId] = useState<string | null>(null);
+
+    useEffect(() => {
+        setClinicId(sessionStorage.getItem('clinicId'));
+    }, []);
+
+    useEffect(() => {
+        if (!clinicId) return;
+
+        const fetchHistory = async () => {
+            setIsLoading(true);
+            try {
+                const response = await get(`/api/visits?patientId=${patient.patient_id}`);
+                if (!response || !response.ok) {
+                    throw new Error('Failed to fetch visit history.');
+                }
+                const data = await response.json();
+                setHistory(data.sort((a: VisitRecord, b: VisitRecord) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+            } catch (error: any) {
+                toast({ title: "Error", description: error.message, variant: "destructive" });
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchHistory();
+    }, [patient.patient_id, toast, get, clinicId]);
+
+    return (
+      <Card className="max-w-4xl mx-auto">
+          <CardHeader>
+              <CardTitle>{patient.patients?.name || 'Unknown Patient'} - Visit History</CardTitle>
+              <CardDescription>Complete visit history for this patient</CardDescription>
+          </CardHeader>
+          <CardContent>
+              {isLoading ? (
+                  <div className="space-y-4">
+                      <Skeleton className="h-10 w-full" />
+                      <Skeleton className="h-10 w-full" />
+                      <Skeleton className="h-10 w-full" />
+                  </div>
+              ) : history.length > 0 ? (
+                  <div className="space-y-3">
+                      {history.map(visit => (
+                          <div key={visit.id} className="flex justify-between items-center p-3 rounded-md border bg-muted/30">
+                              <div>
+                                  <p className="font-semibold">{format(new Date(visit.date), 'PPP')}</p>
+                                  <p className="text-sm text-muted-foreground">{visit.doctors?.name || 'N/A'} - {visit.session}</p>
+                                  <p className="text-xs text-muted-foreground">Token: #{visit.token_number}</p>
+                              </div>
+                              <Badge variant={visit.status === 'Completed' ? 'secondary' : 'destructive'}>{visit.status}</Badge>
+                          </div>
+                      ))}
+                  </div>
+              ) : (
+                  <p className="text-center text-muted-foreground py-8">No visit history found for this patient.</p>
+              )}
+              <Button className="mt-6 w-full" onClick={onBack}>Back to Visit Register</Button>
+          </CardContent>
+      </Card>
+    );
+};
 
 export default function VisitRegisterPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -91,6 +159,8 @@ export default function VisitRegisterPage() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const [showPatientHistory, setShowPatientHistory] = useState(false);
+  const [selectedPatientForHistory, setSelectedPatientForHistory] = useState<any>(null);
 
   const { get } = useFetch();
   const [clinicId, setClinicId] = useState<string | null>(null);
@@ -368,7 +438,23 @@ export default function VisitRegisterPage() {
                 <div className="text-xs text-muted-foreground">{record.doctors?.specialty || 'N/A'}</div>
             </TableCell>
             <TableCell>{record.session}</TableCell>
-            <TableCell>{getStatusBadge(record.status)}</TableCell>
+            <TableCell>
+                <div className="flex items-center gap-2">
+                    {getStatusBadge(record.status)}
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedPatientForHistory(record);
+                            setShowPatientHistory(true);
+                        }}
+                        className="h-8 w-8 p-0"
+                    >
+                        <History className="h-4 w-4" />
+                    </Button>
+                </div>
+            </TableCell>
         </TableRow>
         {expandedRow === record.id && (
             <TableRow className="bg-muted/30 hover:bg-muted/40">
@@ -555,6 +641,20 @@ export default function VisitRegisterPage() {
                                       <div className="space-y-3 text-sm text-muted-foreground border-t pt-4">
                                         <p><strong>Phone:</strong> {(record as any).phone || 'N/A'}</p>
                                         <p><strong>Session:</strong> {record.session}</p>
+                                        <div className="pt-2">
+                                            <Button 
+                                                variant="outline" 
+                                                size="sm" 
+                                                onClick={() => {
+                                                    setSelectedPatientForHistory(record);
+                                                    setShowPatientHistory(true);
+                                                }}
+                                                className="w-full"
+                                            >
+                                                <History className="mr-2 h-4 w-4" />
+                                                View Complete History
+                                            </Button>
+                                        </div>
                                         <div className="space-y-1 border-t pt-3 mt-3">
                             {record.called_time ? <p><strong>Called:</strong> {format(record.called_time, 'h:mm:ss a')}</p> : null}
                             {record.completed_time ? <p><strong>Completed:</strong> {format(record.completed_time, 'h:mm:ss a')}</p> : null}
@@ -578,6 +678,21 @@ export default function VisitRegisterPage() {
           )}
         </CardContent>
       </Card>
+      
+      {/* Patient History Modal */}
+      {showPatientHistory && selectedPatientForHistory && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-background rounded-lg max-w-4xl w-full max-h-[80vh] overflow-y-auto">
+            <PatientHistory 
+              patient={selectedPatientForHistory} 
+              onBack={() => {
+                setShowPatientHistory(false);
+                setSelectedPatientForHistory(null);
+              }} 
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
