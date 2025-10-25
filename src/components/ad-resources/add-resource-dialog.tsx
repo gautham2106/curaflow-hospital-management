@@ -11,10 +11,11 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { UploadCloud, X, Film, FileImage, Timer } from 'lucide-react';
+import { UploadCloud, X, Film, FileImage, Timer, Loader2 } from 'lucide-react';
 import type { AdResource } from '@/lib/types';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
+import { SupabaseStorageService } from '@/lib/supabase/storage';
 
 interface AddResourceDialogProps {
   isOpen: boolean;
@@ -31,6 +32,7 @@ export function AddResourceDialog({ isOpen, onOpenChange, onAddResource, onEditR
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [fileType, setFileType] = useState<'image' | 'video' | null>(null);
   const [duration, setDuration] = useState<number>(30);
+  const [isUploading, setIsUploading] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   
   const isEditing = !!existingResource;
@@ -88,7 +90,7 @@ export function AddResourceDialog({ isOpen, onOpenChange, onAddResource, onEditR
     }
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // For editing, a file is not required. For adding, it is.
     if (!isEditing && !file) {
       toast({ title: 'No file selected', description: 'Please select an image or video file.', variant: 'destructive' });
@@ -103,24 +105,81 @@ export function AddResourceDialog({ isOpen, onOpenChange, onAddResource, onEditR
         return;
     }
 
-    if (isEditing && existingResource) {
-        onEditResource({
+    // If we have a new file, upload it to Supabase Storage
+    if (file) {
+      setIsUploading(true);
+      
+      try {
+        // Validate file
+        const validation = SupabaseStorageService.validateFile(file);
+        if (!validation.valid) {
+          toast({ title: 'Invalid file', description: validation.error, variant: 'destructive' });
+          return;
+        }
+
+        // Get clinic ID
+        const clinicId = sessionStorage.getItem('clinicId');
+        if (!clinicId) {
+          toast({ title: 'Error', description: 'Clinic ID not found. Please refresh the page.', variant: 'destructive' });
+          return;
+        }
+
+        // Upload file to Supabase Storage
+        const uploadResult = await SupabaseStorageService.uploadFile(file, clinicId);
+        
+        if (!uploadResult.success) {
+          toast({ title: 'Upload failed', description: uploadResult.error || 'Failed to upload file', variant: 'destructive' });
+          return;
+        }
+
+        // Use the uploaded URL
+        const finalUrl = uploadResult.url!;
+
+        if (isEditing && existingResource) {
+          // Delete old file if it exists and is a Supabase Storage URL
+          if (existingResource.url && SupabaseStorageService.isSupabaseStorageUrl(existingResource.url)) {
+            const oldFilePath = SupabaseStorageService.extractFilePath(existingResource.url);
+            if (oldFilePath) {
+              await SupabaseStorageService.deleteFile(oldFilePath);
+            }
+          }
+
+          onEditResource({
             ...existingResource,
             title,
             duration,
-            url: file ? previewUrl : existingResource.url, // Keep old url if file not changed
-            type: file ? fileType : existingResource.type,
-        });
-    } else {
-         onAddResource({
+            url: finalUrl,
+            type: fileType,
+          });
+        } else {
+          onAddResource({
             title,
             type: fileType,
-            url: previewUrl,
+            url: finalUrl,
             duration,
-         });
+          });
+        }
+
+        toast({ title: 'Success', description: 'Resource uploaded successfully!' });
+        onOpenChange(false);
+
+      } catch (error: any) {
+        console.error('Upload error:', error);
+        toast({ title: 'Upload failed', description: error.message || 'Failed to upload file', variant: 'destructive' });
+      } finally {
+        setIsUploading(false);
+      }
+    } else {
+      // No new file, just update existing resource
+      if (isEditing && existingResource) {
+        onEditResource({
+          ...existingResource,
+          title,
+          duration,
+        });
+        onOpenChange(false);
+      }
     }
-   
-    onOpenChange(false);
   };
   
   return (
@@ -188,9 +247,18 @@ export function AddResourceDialog({ isOpen, onOpenChange, onAddResource, onEditR
             )}
         </div>
         <DialogFooter className="pt-4">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button type="submit" onClick={handleSubmit} disabled={!title || (!isEditing && !file)}>
-            {isEditing ? 'Save Changes' : 'Add Resource'}
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isUploading}>
+            Cancel
+          </Button>
+          <Button type="submit" onClick={handleSubmit} disabled={!title || (!isEditing && !file) || isUploading}>
+            {isUploading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              isEditing ? 'Save Changes' : 'Add Resource'
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

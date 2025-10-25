@@ -15,8 +15,15 @@ async function createTinyUrl(longUrl: string): Promise<string> {
 export async function POST(request: NextRequest) {
     const { tokenData, sessionTimeRange, clinicName } = await request.json();
 
-    const accessToken = 'EAAQzPY217joBPghgZAIW1IQ1u7OlHDH419Y6LQDbJj9aJ1xwgY1zwWCdV1l35yRrYTqy76UwZCZCIsLQzejlv5ro5hEiyNrtSZBx8VyBfJTimZBN7jXjA4ZCBpWbZBLRD35MZCGEPinPoMPGrch7A4B1iqKoaj7TZCIUs80x4Xy4P2b8Cp6eHUjZCbylkTkBpiSHTYNAZDZD';
-    const phoneId = '591459790706231';
+    const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
+    const phoneId = process.env.WHATSAPP_PHONE_ID;
+    
+    if (!accessToken || !phoneId) {
+        return NextResponse.json({
+            message: 'WhatsApp API credentials not configured',
+            error: 'Missing WHATSAPP_ACCESS_TOKEN or WHATSAPP_PHONE_ID environment variables'
+        }, { status: 500 });
+    }
     const endpointUrl = `https://graph.facebook.com/v22.0/${phoneId}/messages`;
 
     // Construct the tracking URL with proper domain
