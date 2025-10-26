@@ -241,6 +241,11 @@ function MobileQueueDisplay({
     );
   }
 
+  // Get session info for display
+  const sessionInfo = sessionConfigs.find(s => s.name === currentSession);
+  const sessionTimeRange = sessionInfo ?
+    `${sessionInfo.start.substring(0, 5)} - ${sessionInfo.end.substring(0, 5)}` : '';
+
   // Regular mobile queue display
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-4">
@@ -249,7 +254,7 @@ function MobileQueueDisplay({
         <Card className="p-4 text-center">
           <h1 className="text-2xl font-bold text-gray-800">{doctor.name}</h1>
           <p className="text-lg text-gray-600">{doctor.specialty}</p>
-          <Badge 
+          <Badge
             className={cn(
               "mt-2 text-sm",
               doctor.status === 'Available' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
@@ -258,6 +263,24 @@ function MobileQueueDisplay({
             {doctor.status}
           </Badge>
         </Card>
+
+        {/* Session Info Card */}
+        {currentSession && sessionInfo && (
+          <Card className="p-4 bg-blue-50 border-blue-200">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="font-semibold text-blue-800">{currentSession} Session</p>
+                <p className="text-sm text-blue-600">{sessionTimeRange}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-blue-600">Current Time</p>
+                <p className="font-bold text-blue-800">
+                  {currentTime ? format(currentTime, 'h:mm a') : '--:--'}
+                </p>
+              </div>
+            </div>
+          </Card>
+        )}
 
         {/* Current Token */}
         <Card className="p-6">
@@ -452,7 +475,8 @@ function DisplayView() {
   const qrDoctorId = searchParams.get('doctorId');
   const qrDate = searchParams.get('date');
   const qrSession = searchParams.get('session');
-  const qrTokenId = searchParams.get('tokenId'); 
+  const qrTokenId = searchParams.get('tokenId');
+  const qrTokenNumber = searchParams.get('tokenNumber'); // Direct token number from URL 
   
   const isQrMode = !!(qrDoctorId && qrDate && qrSession && qrTokenId && qrClinicId);
   const clinicId = isQrMode ? qrClinicId : (typeof window !== 'undefined' ? sessionStorage.getItem('clinicId') : null);
@@ -533,12 +557,17 @@ function DisplayView() {
   }, [clinicId, toast, isQrMode, get]);
   
   const tokenToHighlight = useMemo(() => {
+      // Try URL parameter first (instant, no queue lookup needed)
+      if (qrTokenNumber) {
+          return parseInt(qrTokenNumber);
+      }
+      // Fallback to finding by tokenId (slower, requires queue data)
       if (qrTokenId) {
           const item = queue.find(q => q.appointmentId === qrTokenId);
           return item?.tokenNumber;
       }
       return undefined;
-  }, [qrTokenId, queue]);
+  }, [qrTokenNumber, qrTokenId, queue]);
 
   const doctorsForTv = useMemo(() => {
     const allAvailableDoctors = allDoctors.filter(d => d.status === 'Available');
@@ -578,7 +607,9 @@ function DisplayView() {
       }
     };
 
-    const interval = setInterval(refreshQueue, 30000); // Refresh every 30 seconds
+    // Mobile users (QR mode) get faster updates (5s), TV display gets 30s
+    const refreshInterval = isQrMode ? 5000 : 30000;
+    const interval = setInterval(refreshQueue, refreshInterval);
     return () => clearInterval(interval);
   }, [clinicId, isQrMode, get]);
 

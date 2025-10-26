@@ -48,9 +48,9 @@ export function PrintToken({ tokenData, sessionConfigs }: PrintTokenProps) {
 
     const { id, patientName, age, gender, doctor, session, tokenNumber, date } = tokenData;
     
-    // Construct the URL for the QR code
+    // Construct the URL for the QR code with tokenNumber for immediate highlighting
     const trackingUrl = (typeof window !== 'undefined' && clinicId)
-      ? `${window.location.origin}/display?clinicId=${clinicId}&doctorId=${doctor.id}&date=${format(new Date(date), 'yyyy-MM-dd')}&session=${session}&tokenId=${id}`
+      ? `${window.location.origin}/display?clinicId=${clinicId}&doctorId=${doctor.id}&date=${format(new Date(date), 'yyyy-MM-dd')}&session=${session}&tokenId=${id}&tokenNumber=${tokenNumber}`
       : '';
 
     const sessionInfo = sessionConfigs.find(s => s.name === session);

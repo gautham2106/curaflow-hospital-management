@@ -26,12 +26,11 @@ export async function POST(request: NextRequest) {
     }
     const endpointUrl = `https://graph.facebook.com/v22.0/${phoneId}/messages`;
 
-    // Construct the tracking URL with proper domain
-    const baseUrl = process.env.VERCEL_URL 
-        ? `https://${process.env.VERCEL_URL}` 
-        : 'https://curaflow-saas-5ishsvhl4-gs-projects-13b73890.vercel.app';
-    
-    const longUrl = `${baseUrl}/display?clinicId=${tokenData.clinicId}&doctorId=${tokenData.doctor.id}&date=${new Date(tokenData.date).toISOString().split('T')[0]}&session=${tokenData.session}&tokenId=${tokenData.id}`;
+    // Construct the tracking URL with proper domain and tokenNumber
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
+        (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+
+    const longUrl = `${baseUrl}/display?clinicId=${tokenData.clinicId || sessionStorage?.getItem('clinicId')}&doctorId=${tokenData.doctor.id}&date=${new Date(tokenData.date).toISOString().split('T')[0]}&session=${tokenData.session}&tokenId=${tokenData.id}&tokenNumber=${tokenData.tokenNumber}`;
     
     // Create TinyURL for the tracking link
     const trackingUrl = await createTinyUrl(longUrl);
