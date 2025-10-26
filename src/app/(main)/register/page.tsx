@@ -382,24 +382,24 @@ export default function VisitRegisterPage() {
     const doc = new jsPDF();
     const tableData = filteredAndSortedRecords.map(record => [
         record.token_number,
-        record.check_in_time ? format(record.check_in_time, 'h:mm a') : 'N/A',
+        `${record.session} ${getSessionTimeRange(record.session)}`,
         (record as any).patient_name || 'N/A',
         (record as any).doctor_name || 'N/A',
-        record.session,
+        record.check_in_time ? format(record.check_in_time, 'h:mm a') : 'Not checked in',
         getSimplifiedStatus(record.status),
     ]);
 
     doc.setFontSize(18);
     doc.text(`Visit Register - ${format(selectedDate, 'PPP')}`, 14, 22);
-    
+
     autoTable(doc, {
-        head: [['Token', 'Time', 'Patient', 'Doctor', 'Session', 'Status']],
+        head: [['Token', 'Booked Time', 'Patient', 'Doctor', 'Check-in', 'Status']],
         body: tableData,
         startY: 30,
         headStyles: { fillColor: [35, 99, 156] },
         theme: 'striped'
     });
-    
+
     doc.save(`Visit_Register_${format(selectedDate, 'yyyy-MM-dd')}.pdf`);
   };
 
@@ -431,10 +431,26 @@ export default function VisitRegisterPage() {
   );
 
 
+  // Helper function to get session time range
+  const getSessionTimeRange = (sessionName: string): string => {
+    const session = sessionConfigs.find(s => s.name === sessionName);
+    if (!session) return '';
+
+    // Format time from 24-hour to 12-hour with AM/PM
+    const formatTime12h = (time24: string): string => {
+      const [hours, minutes] = time24.split(':').map(Number);
+      const period = hours >= 12 ? 'PM' : 'AM';
+      const hours12 = hours % 12 || 12;
+      return `${String(hours12).padStart(2, '0')}:${String(minutes).padStart(2, '0')} ${period}`;
+    };
+
+    return `(${formatTime12h(session.start)} - ${formatTime12h(session.end)})`;
+  };
+
   const RenderRow = ({ record }: { record: VisitRecord }) => (
      <>
-        <TableRow 
-            key={record.id} 
+        <TableRow
+            key={record.id}
             onClick={() => setExpandedRow(expandedRow === record.id ? null : record.id)}
             className="cursor-pointer hover:bg-muted/50"
         >
@@ -442,7 +458,9 @@ export default function VisitRegisterPage() {
             <TableCell>
                 <div className="text-sm">
                     <div className="font-medium">{format(record.date, 'MMM dd, yyyy')}</div>
-                    <div className="text-xs text-muted-foreground">{record.session}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {record.session} {getSessionTimeRange(record.session)}
+                    </div>
                 </div>
             </TableCell>
             <TableCell>
@@ -648,7 +666,7 @@ export default function VisitRegisterPage() {
                                           <div className="text-right">
                                               <p className="font-mono text-lg font-semibold text-primary">#{record.token_number}</p>
                                               <p className="text-xs text-muted-foreground">{format(record.date, 'MMM dd, yyyy')}</p>
-                                              <p className="text-xs text-muted-foreground">{record.session}</p>
+                                              <p className="text-xs text-muted-foreground">{record.session} {getSessionTimeRange(record.session)}</p>
                                           </div>
                                       </div>
                                   </AccordionTrigger>
