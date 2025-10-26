@@ -282,6 +282,7 @@ export type Database = {
           clinic_id: string
           completed_time: string | null
           consultation_time_minutes: number | null
+          created_at: string | null
           date: string
           doctor_id: string
           fee: number | null
@@ -307,6 +308,7 @@ export type Database = {
           clinic_id: string
           completed_time?: string | null
           consultation_time_minutes?: number | null
+          created_at?: string | null
           date: string
           doctor_id: string
           fee?: number | null
@@ -332,6 +334,7 @@ export type Database = {
           clinic_id?: string
           completed_time?: string | null
           consultation_time_minutes?: number | null
+          created_at?: string | null
           date?: string
           doctor_id?: string
           fee?: number | null

@@ -181,11 +181,12 @@ RETURNS TABLE (
     check_in_time TIMESTAMP WITH TIME ZONE,
     status TEXT,
     priority TEXT,
-    appointment_id UUID
+    appointment_id UUID,
+    session TEXT
 ) AS $$
 BEGIN
     RETURN QUERY
-    SELECT 
+    SELECT
         q.id,
         v.token_number,
         p.name as patient_name,
@@ -193,7 +194,8 @@ BEGIN
         q.check_in_time,
         q.status,
         q.priority,
-        q.appointment_id
+        q.appointment_id,
+        v.session
     FROM queue q
     JOIN visits v ON q.appointment_id = v.id
     JOIN patients p ON v.patient_id = p.id
