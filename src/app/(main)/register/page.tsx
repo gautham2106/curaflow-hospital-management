@@ -220,11 +220,12 @@ export default function VisitRegisterPage() {
 
         const data = await response.json();
         setDailyRecords(data.map((r: any) => ({ 
-          ...r, 
-          date: new Date(r.date), 
-          checkInTime: r.check_in_time ? new Date(r.check_in_time) : null, 
-          calledTime: r.called_time ? new Date(r.called_time) : undefined, 
+          ...r,
+          date: new Date(r.date),
+          checkInTime: r.check_in_time ? new Date(r.check_in_time) : null,
+          calledTime: r.called_time ? new Date(r.called_time) : undefined,
           completedTime: r.completed_time ? new Date(r.completed_time) : undefined,
+          createdAt: r.created_at ? new Date(r.created_at) : undefined,
           // Flatten nested objects
           patientName: r.patients?.name || 'Unknown',
           phone: r.patients?.phone || '',
@@ -264,11 +265,12 @@ export default function VisitRegisterPage() {
 
         const data = await response.json();
         setDailyRecords(data.map((r: any) => ({ 
-          ...r, 
-          date: new Date(r.date), 
-          checkInTime: r.check_in_time ? new Date(r.check_in_time) : null, 
-          calledTime: r.called_time ? new Date(r.called_time) : undefined, 
+          ...r,
+          date: new Date(r.date),
+          checkInTime: r.check_in_time ? new Date(r.check_in_time) : null,
+          calledTime: r.called_time ? new Date(r.called_time) : undefined,
           completedTime: r.completed_time ? new Date(r.completed_time) : undefined,
+          createdAt: r.created_at ? new Date(r.created_at) : undefined,
           // Flatten nested objects
           patientName: r.patients?.name || 'Unknown',
           phone: r.patients?.phone || '',
@@ -307,11 +309,12 @@ export default function VisitRegisterPage() {
 
         const data = await response.json();
         setDailyRecords(data.map((r: any) => ({ 
-          ...r, 
-          date: new Date(r.date), 
-          checkInTime: r.check_in_time ? new Date(r.check_in_time) : null, 
-          calledTime: r.called_time ? new Date(r.called_time) : undefined, 
+          ...r,
+          date: new Date(r.date),
+          checkInTime: r.check_in_time ? new Date(r.check_in_time) : null,
+          calledTime: r.called_time ? new Date(r.called_time) : undefined,
           completedTime: r.completed_time ? new Date(r.completed_time) : undefined,
+          createdAt: r.created_at ? new Date(r.created_at) : undefined,
           // Flatten nested objects
           patientName: r.patients?.name || 'Unknown',
           phone: r.patients?.phone || '',
@@ -380,20 +383,23 @@ export default function VisitRegisterPage() {
   const handleExportPdf = () => {
     if (!selectedDate) return;
     const doc = new jsPDF();
-    const tableData = filteredAndSortedRecords.map(record => [
-        record.token_number,
-        `${record.session} ${getSessionTimeRange(record.session)}`,
-        (record as any).patient_name || 'N/A',
-        (record as any).doctor_name || 'N/A',
-        record.check_in_time ? format(record.check_in_time, 'h:mm a') : 'Not checked in',
-        getSimplifiedStatus(record.status),
-    ]);
+    const tableData = filteredAndSortedRecords.map(record => {
+        const bookedAt = (record as any).createdAt;
+        return [
+            record.token_number,
+            bookedAt ? format(bookedAt, 'MMM dd, yyyy h:mm a') : `${format(record.date, 'MMM dd, yyyy')} - ${record.session}`,
+            (record as any).patient_name || 'N/A',
+            (record as any).doctor_name || 'N/A',
+            record.check_in_time ? format(record.check_in_time, 'h:mm a') : 'Not checked in',
+            getSimplifiedStatus(record.status),
+        ];
+    });
 
     doc.setFontSize(18);
     doc.text(`Visit Register - ${format(selectedDate, 'PPP')}`, 14, 22);
 
     autoTable(doc, {
-        head: [['Token', 'Booked Time', 'Patient', 'Doctor', 'Check-in', 'Status']],
+        head: [['Token', 'Booked Date & Time', 'Patient', 'Doctor', 'Check-in', 'Status']],
         body: tableData,
         startY: 30,
         headStyles: { fillColor: [35, 99, 156] },
@@ -431,23 +437,11 @@ export default function VisitRegisterPage() {
   );
 
 
-  // Helper function to get session time range
-  const getSessionTimeRange = (sessionName: string): string => {
-    const session = sessionConfigs.find(s => s.name === sessionName);
-    if (!session) return '';
+  const RenderRow = ({ record }: { record: VisitRecord }) => {
+    // Get the booking timestamp (when token was generated)
+    const bookedAt = (record as any).createdAt;
 
-    // Format time from 24-hour to 12-hour with AM/PM
-    const formatTime12h = (time24: string): string => {
-      const [hours, minutes] = time24.split(':').map(Number);
-      const period = hours >= 12 ? 'PM' : 'AM';
-      const hours12 = hours % 12 || 12;
-      return `${String(hours12).padStart(2, '0')}:${String(minutes).padStart(2, '0')} ${period}`;
-    };
-
-    return `(${formatTime12h(session.start)} - ${formatTime12h(session.end)})`;
-  };
-
-  const RenderRow = ({ record }: { record: VisitRecord }) => (
+    return (
      <>
         <TableRow
             key={record.id}
@@ -457,9 +451,11 @@ export default function VisitRegisterPage() {
             <TableCell className="font-mono">{record.token_number}</TableCell>
             <TableCell>
                 <div className="text-sm">
-                    <div className="font-medium">{format(record.date, 'MMM dd, yyyy')}</div>
+                    <div className="font-medium">
+                      {bookedAt ? format(bookedAt, 'MMM dd, yyyy') : format(record.date, 'MMM dd, yyyy')}
+                    </div>
                     <div className="text-xs text-muted-foreground">
-                      {record.session} {getSessionTimeRange(record.session)}
+                      {bookedAt ? format(bookedAt, 'h:mm a') : record.session}
                     </div>
                 </div>
             </TableCell>
@@ -496,7 +492,8 @@ export default function VisitRegisterPage() {
                     <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-4 text-sm">
                         <div className="space-y-1">
                            <h4 className="font-semibold mb-2">Visit Details</h4>
-                            <p><strong>Booked:</strong> {format(record.date, 'MMM dd, yyyy')} at {record.session}</p>
+                            <p><strong>Booked:</strong> {bookedAt ? format(bookedAt, 'MMM dd, yyyy h:mm a') : `${format(record.date, 'MMM dd, yyyy')} - ${record.session}`}</p>
+                            <p><strong>Appointment:</strong> {format(record.date, 'MMM dd, yyyy')} - {record.session}</p>
                             {record.checkInTime ? <p><strong>Checked in:</strong> {format(record.checkInTime, 'h:mm:ss a')}</p> : <p><strong>Status:</strong> Not checked in yet</p>}
                             {record.called_time ? <p><strong>Called:</strong> {format(record.called_time, 'h:mm:ss a')}</p> : null}
                             {record.completed_time ? <p><strong>Completed:</strong> {format(record.completed_time, 'h:mm:ss a')}</p> : null}
@@ -516,7 +513,8 @@ export default function VisitRegisterPage() {
             </TableRow>
         )}
      </>
-  )
+    );
+  };
 
   if (!selectedDate) {
     return (
@@ -665,8 +663,17 @@ export default function VisitRegisterPage() {
                                           </div>
                                           <div className="text-right">
                                               <p className="font-mono text-lg font-semibold text-primary">#{record.token_number}</p>
-                                              <p className="text-xs text-muted-foreground">{format(record.date, 'MMM dd, yyyy')}</p>
-                                              <p className="text-xs text-muted-foreground">{record.session} {getSessionTimeRange(record.session)}</p>
+                                              {(record as any).createdAt ? (
+                                                <>
+                                                  <p className="text-xs text-muted-foreground">{format((record as any).createdAt, 'MMM dd, yyyy')}</p>
+                                                  <p className="text-xs text-muted-foreground">{format((record as any).createdAt, 'h:mm a')}</p>
+                                                </>
+                                              ) : (
+                                                <>
+                                                  <p className="text-xs text-muted-foreground">{format(record.date, 'MMM dd, yyyy')}</p>
+                                                  <p className="text-xs text-muted-foreground">{record.session}</p>
+                                                </>
+                                              )}
                                           </div>
                                       </div>
                                   </AccordionTrigger>
