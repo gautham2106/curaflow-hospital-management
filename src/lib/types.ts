@@ -491,7 +491,17 @@ export type Database = {
           status: string
           priority: string
           appointment_id: string
+          session: string
         }[]
+      }
+      get_and_increment_token_number: {
+        Args: {
+          p_clinic_id: string
+          p_doctor_id: string
+          p_date: string
+          p_session: string
+        }
+        Returns: number
       }
       update_clinic_admin: {
         Args: {

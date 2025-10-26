@@ -208,7 +208,7 @@ function MobileQueueDisplay({
   if (isFutureAppointment) {
     // Show future appointment details
     const sessionConfig = sessionConfigs.find(s => s.name === currentSession);
-    const sessionStartTime = sessionConfig ? new Date(`${new Date().toISOString().split('T')[0]}T${sessionConfig.start_time}`) : new Date();
+    const sessionStartTime = sessionConfig ? new Date(`${new Date().toISOString().split('T')[0]}T${sessionConfig.start}`) : new Date();
     
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
@@ -225,7 +225,7 @@ function MobileQueueDisplay({
 
   // Check if session hasn't started yet
   const sessionConfig = sessionConfigs.find(s => s.name === currentSession);
-  const sessionStartTime = sessionConfig ? new Date(`${new Date().toISOString().split('T')[0]}T${sessionConfig.start_time}`) : new Date();
+  const sessionStartTime = sessionConfig ? new Date(`${new Date().toISOString().split('T')[0]}T${sessionConfig.start}`) : new Date();
   const isPreSession = currentTime && isBefore(currentTime, sessionStartTime);
   
   if (isPreSession) {
