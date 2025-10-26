@@ -713,23 +713,39 @@ function DisplayView() {
 
       {showAds ? (
         <div className="flex-1 flex flex-row min-h-0">
-            <div className="w-3/4 overflow-y-auto">{mainContent}</div>
-            <div className="w-1/4 p-4 md:p-6 lg:p-8 pl-0">
+            {/* Queue Display - Hidden in fullscreen mode */}
+            {adMode !== 'fullscreen' && (
+              <div className={cn(
+                "overflow-y-auto",
+                adMode === 'sidebar' && "w-3/4",
+                adMode === 'split' && "w-1/2"
+              )}>
+                {mainContent}
+              </div>
+            )}
+
+            {/* Ad Display */}
+            <div className={cn(
+              "p-4 md:p-6 lg:p-8",
+              adMode === 'sidebar' && "w-1/4 pl-0",
+              adMode === 'fullscreen' && "w-full",
+              adMode === 'split' && "w-1/2 pl-0"
+            )}>
                 <div className="h-full flex flex-col">
                     <div className="flex gap-2 mb-4">
-                        <button 
+                        <button
                             onClick={() => setAdMode('sidebar')}
                             className={cn("px-3 py-1 text-xs rounded", adMode === 'sidebar' ? 'bg-primary text-primary-foreground' : 'bg-muted')}
                         >
                             Sidebar
                         </button>
-                        <button 
+                        <button
                             onClick={() => setAdMode('fullscreen')}
                             className={cn("px-3 py-1 text-xs rounded", adMode === 'fullscreen' ? 'bg-primary text-primary-foreground' : 'bg-muted')}
                         >
                             Fullscreen
                         </button>
-                        <button 
+                        <button
                             onClick={() => setAdMode('split')}
                             className={cn("px-3 py-1 text-xs rounded", adMode === 'split' ? 'bg-primary text-primary-foreground' : 'bg-muted')}
                         >
@@ -737,9 +753,9 @@ function DisplayView() {
                         </button>
                     </div>
                     <div className="flex-1">
-                        <AdCarousel 
-                            resources={adResources} 
-                            orientation={adMode === 'fullscreen' ? 'horizontal' : 'vertical'} 
+                        <AdCarousel
+                            resources={adResources}
+                            orientation={adMode === 'fullscreen' ? 'horizontal' : 'vertical'}
                         />
                     </div>
                 </div>
